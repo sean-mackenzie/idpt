@@ -4,9 +4,20 @@ from scipy.optimize import curve_fit
 from skimage.feature import match_template
 import numpy as np
 
+from idpt.utils.subresolution import fit_2d_gaussian_on_corr
+
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def get_similarity_function(function):
+    if function == 'sknccorr':
+        sim_func = sk_norm_cross_correlation
+        optim = np.argmax
+    else:
+        raise ValueError("Unknown similarity function {}".format(function))
+    return sim_func, optim
 
 
 def sk_norm_cross_correlation(img1, img2):
@@ -17,6 +28,85 @@ def sk_norm_cross_correlation(img1, img2):
             "Unable to correlate mismatched templates: (img1, img2): ({}, {})".format(img1.shape, img2.shape))
         result = np.nan
     return result
+
+
+def correlate_against_stack(template, stack, sim_func, optim=None):
+    if isinstance(sim_func, str):
+        sim_func, optim = get_similarity_function(sim_func)
+
+    response_stack = []
+    similarity_stack = []
+    for i in stack:
+        response_image = sim_func(i, template)
+        similarity_stack.append(np.max(response_image))
+        response_stack.append(response_image)
+
+    idx_peak_correlation = optim(similarity_stack)
+
+    """import matplotlib.pyplot as plt
+    fig, (ax1, ax2, ax3) = plt.subplots(ncols=3)
+    ax1.imshow(template)
+    ax2.imshow(stack[idx_peak_correlation])
+    ax3.plot(np.arange(len(stack)), similarity_stack)
+    plt.savefig('/Users/mackenzie/PythonProjects/idpt/publication/results/test/max_sim={}.png'.format(similarity_stack[idx_peak_correlation]))
+    j = 1"""
+
+    return idx_peak_correlation, similarity_stack, response_stack
+
+
+def localize_discrete(idx_peak_correlation, similarity_stack, response_stack, z_calib):
+    correlation_coefficient = similarity_stack[idx_peak_correlation]
+    z_discrete = z_calib[idx_peak_correlation]
+
+    # x-y discrete
+
+    # get the correlation map where peak correlation was found
+    response_image = response_stack[idx_peak_correlation]
+    res_length = np.floor(response_image.shape[0] / 2)
+
+    # x,y coordinates in the image space where the highest correlation was found
+    ij = np.unravel_index(np.argmax(response_image), response_image.shape)
+    xmt, ymt = ij[::-1]
+    dx_discrete = res_length - xmt
+    dy_discrete = res_length - ymt
+
+    if dx_discrete is None and dy_discrete is None:
+        dx_discrete, dy_discrete = 0, 0
+
+    return correlation_coefficient, dx_discrete, dy_discrete, z_discrete
+
+
+def localize_subresolution(idx_peak_correlation, similarity_stack, response_stack, z_calib, optim):
+    # sub-resolution z-localization
+    z_interp, sim_interp = parabolic_interpolation(z_calib, similarity_stack, idx_peak_correlation)
+    z_subresolution = z_interp[optim(sim_interp)]
+    similarity_subresolution = sim_interp[optim(sim_interp)]
+
+    # sub-resolution xy-localization
+
+    # get the correlation map where peak correlation was found
+    response_image = response_stack[idx_peak_correlation]
+    res_length = np.floor(response_image.shape[0] / 2)
+
+    # x,y coordinates in the image space where the highest correlation was found
+    ij = np.unravel_index(np.argmax(response_image), response_image.shape)
+    xmt, ymt = ij[::-1]
+
+    xg, yg = None, None
+    result = response_image - np.min(response_image)
+    pad_width = 0
+
+    if np.size(result) > 5:
+        xgt, ygt = fit_2d_gaussian_on_corr(result, xmt + pad_width, ymt + pad_width)
+        if xgt is not None and ygt is not None:
+            xg = res_length - xgt
+            yg = res_length - ygt
+
+    if xg is None and yg is None:
+        xg, yg = 0, 0
+    dx_subresolution, dy_subresolution = xg, yg
+
+    return similarity_subresolution, dx_subresolution, dy_subresolution, z_subresolution
 
 
 def akima_interpolation(z_calib, sim, max_idx):

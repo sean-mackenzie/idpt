@@ -1,7 +1,8 @@
 # IdptCalibrationStack.py
 
 from .IdptParticle import IdptParticle
-from idpt.utils.correlation import sk_norm_cross_correlation, parabolic_interpolation
+from idpt.utils.correlation import get_similarity_function, sk_norm_cross_correlation, correlate_against_stack
+from idpt.utils.correlation import localize_discrete, localize_subresolution, parabolic_interpolation
 from idpt.utils.subresolution import fit_2d_gaussian_on_corr
 
 from collections import OrderedDict
@@ -14,14 +15,13 @@ logger = logging.getLogger(__name__)
 
 class IdptCalibrationStack(object):
 
-    def __init__(self, particle_id, location, template_padding=0):
+    def __init__(self, particle_id, location):
         super(IdptCalibrationStack, self).__init__()
         self._id = particle_id
         self._location = location
         self._layers = OrderedDict()
         self._particles = []
         self._shape = None
-        self._template_padding = template_padding
 
     def __len__(self):
         return len(self._layers)
@@ -40,7 +40,6 @@ class IdptCalibrationStack(object):
         repr_dict = {'Particle ID': self.id,
                      'Location (x, y)': self.location,
                      'Particle bounding box dimensions': self.shape,
-                     'Template padding': self.template_padding,
                      'Number of layers': len(self),
                      'Min. and max. z coordinate': [min_z, max_z]}
         out_str = "{}: \n".format(class_)
@@ -54,7 +53,8 @@ class IdptCalibrationStack(object):
 
     def build_layers(self):
         # uniformize template size and center
-        self._uniformize_and_center()
+        print("skipping uniformize and center templates. Need to double-check")
+        # self._uniformize_and_center()
 
         # get list of z-coordinates and template images
         z = []
@@ -71,6 +71,7 @@ class IdptCalibrationStack(object):
         # instantiate layers attribute
         self._layers = layers
 
+    """
     def _uniformize_and_center(self):
         # Find biggest bounding box
         w_max, h_max = (0, 0)
@@ -86,6 +87,7 @@ class IdptCalibrationStack(object):
             particle.resize_bbox(w_max, h_max)
 
         self._shape = (w_max, h_max)
+    """
 
     def get_layers(self, range_z):
         # if no range is supplied, get all layers
@@ -94,30 +96,13 @@ class IdptCalibrationStack(object):
         else:
             return self._layers
 
-    def infer_z(self, particle, function):
+    """
+    def infer_z_old(self, particle, function):
         # get array of z-coords and image templates
         z_calib, temp_calib = np.array(list(self.layers.keys())), np.array(list(self.layers.values()))
 
-        # if the particle image is larger than the calibration template, resize the particle image
-        calib_template_x, calib_template_y = np.shape(temp_calib[0])
-
-        if particle.template.shape[0] > calib_template_x and particle.template.shape[1] > calib_template_y:
-            particle.resize_bbox(*self.shape)
-            print('particle template x and y lengths at true_z {} are too large for calibration template'.format(
-                particle.z_true))
-        elif particle.template.shape[0] > calib_template_x:
-            new_shape = (calib_template_x, particle.template.shape[1])
-            particle.resize_bbox(*new_shape)
-            print(
-                'particle template x-length at true_z {} is too large for calibration template'.format(particle.z_true))
-        elif particle.template.shape[1] > calib_template_y:
-            new_shape = (particle.template.shape[0], calib_template_y)
-            particle.resize_bbox(*new_shape)
-            print(
-                'particle template y-length at true_z {} is too large for calibration template'.format(particle.z_true))
-
         # if/elif function to pass the correct cross-correlation method and optimum function
-        if function == 'skncorr':
+        if function == 'sknccorr':
             sim_func = sk_norm_cross_correlation
             optim = np.argmax
         else:
@@ -185,6 +170,30 @@ class IdptCalibrationStack(object):
         z_interp, sim_interp = parabolic_interpolation(z_calib, sim, max_idx)
         particle.set_z(z_interp[optim(sim_interp)])
         particle.set_max_sim(sim_interp[optim(sim_interp)])
+    """
+
+    def infer_z(self, particle, function):
+        # stack of z-positions and templates
+        z_calib, calib_stack = np.array(list(self.layers.keys())), np.array(list(self.layers.values()))
+
+        # similarity function, optimization function
+        sim_func, optim = get_similarity_function(function)
+
+        # cross-correlate template with calibration stack
+        idx_peak, similarity_stack, response_stack = correlate_against_stack(template=particle.template,
+                                                                             stack=calib_stack,
+                                                                             sim_func=function)
+        # peak similarity corresponds to x-, y-, z-shift
+        sim_discrete, dx_discrete, dy_discrete, z_discrete = localize_discrete(idx_peak, similarity_stack,
+                                                                               response_stack, z_calib)
+        # set particle's discrete position estimation
+        particle.set_localized_discrete_position(sim_discrete, dx_discrete, dy_discrete, z_discrete)
+
+        # interpolate in x-y and z to refine position below image resolution
+        sim_sub, dx_sub, dy_sub, z_sub = localize_subresolution(idx_peak, similarity_stack,
+                                                                response_stack, z_calib, optim)
+        # set particle's sub-resolution position estimation
+        particle.set_localized_subresolution_position(sim_sub, dx_sub, dy_sub, z_sub)
 
     def reset_id(self, new_id):
         assert isinstance(new_id, int)
@@ -212,7 +221,3 @@ class IdptCalibrationStack(object):
     @property
     def particles(self):
         return self._particles
-
-    @property
-    def template_padding(self):
-        return self._template_padding

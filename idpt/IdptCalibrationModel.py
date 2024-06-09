@@ -11,10 +11,9 @@ logger = logging.getLogger(__name__)
 
 class IdptCalibrationModel(object):
 
-    def __init__(self, collections, image_to_z, template_padding=0):
+    def __init__(self, collections, image_to_z):
         super(IdptCalibrationModel, self).__init__()
 
-        self._template_padding = template_padding
         self._particle_ids = None
 
         if not isinstance(image_to_z, list):
@@ -37,7 +36,7 @@ class IdptCalibrationModel(object):
                     image.set_z(img_to_z[image.filename])
 
         # Create the calibration stacks
-        self._create_stacks(*collections, template_padding=template_padding)
+        self._create_stacks(*collections)
 
     def __len__(self):
         return len(self.calibration_stacks)
@@ -51,7 +50,7 @@ class IdptCalibrationModel(object):
             out_str += '{}: {} \n'.format(key, str(val))
         return out_str
 
-    def _create_stacks(self, *collections, template_padding):
+    def _create_stacks(self, *collections):
         stacks = {}
         ids_in_collects = []
         for i, collection in enumerate(collections):
@@ -76,10 +75,7 @@ class IdptCalibrationModel(object):
 
                     if particle.id not in stacks.keys():
                         # instantiate GdpytCalibrationStack class for each particle ID.
-                        new_stack = IdptCalibrationStack(particle.id,
-                                                         particle.location,
-                                                         template_padding=template_padding,
-                                                         )
+                        new_stack = IdptCalibrationStack(particle.id, particle.location)
                         new_stack.add_particle(particle)
                         stacks.update({particle.id: new_stack})
                     else:
@@ -109,10 +105,6 @@ class IdptCalibrationModel(object):
         self.update_particle_ids()
         return self._particle_ids
 
-    @property
-    def template_padding(self):
-        return self._template_padding
-
 
 class IdptImageInference(object):
 
@@ -121,9 +113,9 @@ class IdptImageInference(object):
         assert isinstance(calib_set, IdptCalibrationModel)
         self.calib_set = calib_set
 
-    def _cross_correlation_inference(self, function, use_stack):
+    def _cross_correlation_inference(self, function, use_stack=None):
 
-        if function.lower() not in ['skncorr']:
+        if function.lower() not in ['sknccorr']:
             raise ValueError("{} is not implemented or a valid function".format(function))
 
         if use_stack == 'nearest':
@@ -157,8 +149,8 @@ class IdptImageInference(object):
                 # infer z
                 stack.infer_z(particle, function=function)
 
-    def skncorr(self, use_stack):
-        self._cross_correlation_inference('skncorr', use_stack=use_stack)
+    def sknccorr(self, use_stack=None):
+        self._cross_correlation_inference('sknccorr', use_stack=use_stack)
 
     @property
     def infer_sub_image(self):

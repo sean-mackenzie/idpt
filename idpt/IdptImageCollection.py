@@ -52,27 +52,38 @@ class IdptImageCollection(object):
         self.image_base_string = image_base_string
         self.calibration_z_step_size = calibration_z_step_size
 
+        # image processing params
+        self.cropping = cropping
+        self.background_subtraction = background_subtraction
+        self.preprocessing = preprocessing
+        self.thresholding = thresholding
+
         # image processing filters
         self.min_particle_size = min_particle_area
         self.max_particle_size = max_particle_area
         self.same_id_threshold = same_id_threshold
 
         # toggles for calibration stacks and inference
-        self.baseline = baseline_image
-        if particle_id_image is not None:
-            self.particle_id_image = particle_id_image
-        else:
-            self.particle_id_image = baseline_image
         self.template_padding = template_padding
         self.hard_baseline = hard_baseline
         self.xy_displacement = xy_displacement
         self.stacks_use_raw = stacks_use_raw
+        self.baseline = baseline_image
 
-        # image processing params
-        self.cropping = cropping
-        self.background_subtraction = background_subtraction
-        self.preprocessing = preprocessing
-        self.thresholding = thresholding
+        # NOTE: this could be solved by creating a "baseline_locations" variable
+        # which takes uniformized_positions or IdptCalibrationModel
+        if isinstance(self.baseline, IdptCalibrationModel) and particle_id_image is None:
+            raise ValueError("If baseline locations are from Calibration Model,"
+                             "then particle_id_image (image filename) must be passed.")
+
+        if particle_id_image is None:
+            self.particle_id_image = baseline_image
+        else:
+            self.particle_id_image = particle_id_image
+
+        # instantiate
+        self.files = None
+        self.images = None
 
         # not known if necessary
         self.baseline_particle_mask = None
@@ -81,21 +92,16 @@ class IdptImageCollection(object):
         self.baseline_regionprops_data = None
         # not known if necessary
 
-        # Will get defined
-        self.files = None
-        self.images = None
-
         # add images
-        exclude = []
-        self.get_exclusion_subset(exclude=exclude, subset=image_subset)
-        self.find_files(exclude=exclude)
+        self.find_files(subset=image_subset)
         self.add_images()
 
         # process images
         self.crop_images()
         self.subtract_background()
         self.preprocess_images()
-        self.identify_particles_in_images()
+        # self.identify_particles_in_images()
+        self.identify_particles_in_baseline_image()
         self.uniformize_particle_ids(baseline=self.baseline, uv=self.xy_displacement)
 
     def get_exclusion_subset(self, exclude, subset):
@@ -103,14 +109,15 @@ class IdptImageCollection(object):
             pass
         else:
             base_string = self.image_base_string
-            all_files = listdir(self.image_path)
-            save_files = []
+            # all_files = listdir(self.image_path)
+            # save_files = []
 
-            for file in all_files:
+            save_files = [f for f in listdir(self.image_path) if f.endswith(self.image_file_type) and f not in exclude]
+            """for file in all_files:
                 if file.endswith(self.image_file_type):
                     if file in exclude:
                         continue
-                    save_files.append(file)
+                    save_files.append(file)"""
 
             # if subset is an integer, this indicates the total number of files to include.
             #   Note: the files are randomly selected from the collection.
@@ -135,11 +142,11 @@ class IdptImageCollection(object):
 
                 protected_files = []
                 # we always want to include the baseline or particle_id_image in the image collection.
-                if self.baseline is not None:
+                """if self.baseline is not None:
                     if isinstance(self.baseline, IdptCalibrationModel):
                         pass
                     else:
-                        protected_files.append(self.baseline)
+                        protected_files.append(self.baseline)"""
                 if self.particle_id_image is not None:
                     protected_files.append(self.particle_id_image)
 
@@ -174,7 +181,7 @@ class IdptImageCollection(object):
             else:
                 raise ValueError("Collecting multiple subsets is not implemented at the moment.")
 
-    def find_files(self, exclude=[]):
+    def find_files_old(self, exclude=[]):
         all_files = listdir(self.image_path)
         number_of_files = 0
         save_files = []
@@ -193,6 +200,56 @@ class IdptImageCollection(object):
                                                                   self.image_path))
         self.files = save_files
 
+    def find_files(self, subset):
+        files = [f for f in listdir(self.image_path) if f.endswith(self.image_file_type)]
+
+        if subset is not None:
+
+            # if subset is an integer, this indicates the total number of files to include.
+            #   Note: the files are randomly selected from the collection.
+            if len(subset) == 1:
+                files = [rf for rf in random.sample(set(files), subset[0])]
+
+            # if subset is a two element list, this indicates a start and stop range.
+            elif len(subset) == 2:
+                start = subset[0]
+                stop = subset[1]
+                search_string = self.image_base_string + '(.*)' + self.image_file_type
+                files = [f for f in files if start <= float(re.search(search_string, f).group(1)) <= stop]
+
+            # if subset is a three element list, this indicates a start and stop z-range and sampling rate.
+            elif len(subset) == 3:
+                start = subset[0]
+                stop = subset[1]
+                subset_files = []
+                subset_index = []
+                search_string = self.image_base_string + '(.*)' + self.image_file_type
+
+                # get files within subset
+                for f in files:
+                    file_index = float(re.search(search_string, f).group(1))
+                    if file_index >= start and file_index <= stop:
+                        subset_files.append(f)
+                        subset_index.append(file_index)
+
+                # sort the zipped list of files and indices
+                sorted_subset = sorted(list(zip(subset_files, subset_index)), key=lambda x: x[1])
+
+                print(sorted_subset)
+
+                # sample the list according to the third element in subset
+                sorted_files, sorted_indices = map(list, zip(*sorted_subset))
+                n_sampling = subset[2]
+                files = sorted_files[::n_sampling]
+            else:
+                raise ValueError("subset should be list of length 1, 2, or 3.")
+
+            if self.particle_id_image not in files:
+                files += [self.particle_id_image]
+
+        files = sorted(files, key=lambda filename: float(filename.split(self.image_base_string)[-1].split('.')[0]))
+        self.files = files
+
     def add_images(self):
         images = OrderedDict()
         frame = 0
@@ -203,7 +260,8 @@ class IdptImageCollection(object):
         self.images = images
 
     def crop_images(self):
-        pass
+        for image in self.images.values():
+            image.crop_image(self.cropping)
 
     def subtract_background(self):
         pass
@@ -212,11 +270,37 @@ class IdptImageCollection(object):
         for image in self.images.values():
             image.preprocess_image(self.preprocessing)
 
+    def identify_particles_in_baseline_image(self):
+        if self.particle_id_image is not None:
+            # use-cases:
+            # 1.
+            particle_identification_image = self.images[self.particle_id_image]
+        else:
+            # use-cases:
+            # 1. calibration image collection
+            # 2. test and calibration images have identical particle positions.
+            particle_identification_image = self.images[self.baseline]
+
+        # identify particles in baseline image and define templates (bounding boxes)
+        # TODO: I could set: self.baseline = particle_iden... which is concise
+        # idk but the repercussions are
+        particle_identification_image.identify_particles(collection=self,
+                                                         particle_id_image=particle_identification_image.filtered,
+                                                         thresh_specs=self.thresholding,
+                                                         min_size=self.min_particle_size,
+                                                         max_size=self.max_particle_size,
+                                                         padding=self.template_padding,
+                                                         )
+        # extract templates from each image
+        for i, image in enumerate(self.images.values()):
+            image.extract_particle_sub_images(collection=self, padding=self.template_padding,
+                                              template_use_raw=self.stacks_use_raw)
+
+    """
     def identify_particles_in_images(self):
         if self.image_collection_type == 'calibration':
             # b/c static templates
             particle_identification_image = self.images[self.baseline].filtered
-
         else:
             if isinstance(self.baseline, IdptCalibrationModel):
                 particle_identification_image = self.images[self.particle_id_image].filtered
@@ -233,7 +317,8 @@ class IdptImageCollection(object):
                                      template_use_raw=self.stacks_use_raw,
                                      )
             if i == 0:
-                logger.info("Identified {} particles on image {}".format(len(image.particles), image.filename))
+                logger.info("Identified {} particles in baseline image {}".format(len(image.particles), image.filename))
+    """
 
     def uniformize_particle_ids(self, baseline=None, baseline_img=None, uv=None):
         if uv is None:
@@ -371,9 +456,19 @@ class IdptImageCollection(object):
     def set_baseline_regionprops_data(self, regionprops_data):
         self.baseline_regionprops_data = regionprops_data
 
-    def create_calibration(self, name_to_z, template_padding=0):
-        return IdptCalibrationModel(self, name_to_z, template_padding=template_padding)
+    def create_calibration(self, name_to_z):
+        return IdptCalibrationModel(self, name_to_z)
 
     def infer_z(self, calib_set):
         assert isinstance(calib_set, IdptCalibrationModel)
         return calib_set.infer_z(self)
+
+    def package_particle_positions(self):
+        coords = []
+        for image in self.images.values():
+            coords.append(image.get_coords())
+        coords = pd.DataFrame(np.vstack(coords),
+                              columns=['frame', 'id', 'cm_discrete', 'cm_sub', 'z_sub', 'x_sub', 'y_sub',
+                                       'z_discrete', 'x_discrete', 'y_discrete'])
+        coords = coords.sort_values(['frame', 'id'])
+        return coords

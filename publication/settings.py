@@ -22,7 +22,7 @@ class datasets(object):
                 image_file_type = 'tif'
                 image_base_string = 'calib_'
                 calibration_z_step_size = 1
-                image_subset = [1, 106, calibration_z_step_size]  # None
+                image_subset = None
                 baseline_image = 'calib_50.tif'
                 hard_baseline = True
 
@@ -30,7 +30,7 @@ class datasets(object):
                 save_id_string = 'calib'
                 save_plots = True
 
-                cropping = {'xmin': 0, 'xmax': 512, 'ymin': 0, 'ymax': 512, 'pad': 5}
+                cropping = {'pad': 5}
                 background_subtraction = None
                 processing_method = None
                 processing_filter_type = None
@@ -52,7 +52,7 @@ class datasets(object):
                 image_file_type = 'tif'
                 image_base_string = 'test_'
                 calibration_z_step_size = None
-                image_subset = [1, 79, 3]  # None
+                image_subset = None
                 baseline_image = 'test_39.tif'
                 hard_baseline = True
 
@@ -60,7 +60,7 @@ class datasets(object):
                 save_id_string = 'test'
                 save_plots = True
 
-                cropping = {'xmin': 0, 'xmax': 512, 'ymin': 0, 'ymax': 512, 'pad': 5}
+                cropping = {'pad': 5}
                 background_subtraction = None
                 processing_method = None
                 processing_filter_type = None
@@ -75,7 +75,7 @@ class datasets(object):
                 same_id_threshold = 3
                 stacks_use_raw = True
                 xy_displacement = [[-2, -6]]
-                infer_method = 'skncorr'
+                infer_method = 'sknccorr'
 
         else:
             raise ValueError("Dataset must be in: ['11.06.21_z-micrometer-v2']")

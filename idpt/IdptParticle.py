@@ -1,15 +1,15 @@
-
-
 import numpy as np
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class IdptParticle(object):
 
-    def __init__(self, image, id_, contour, bbox,
-                 particle_mask_on_image, location, frame):
+    def __init__(self, image, id_, contour, bbox, particle_mask_on_image, location, frame):
+
         super(IdptParticle, self).__init__()
+
         self._id = int(id_)
         self.frame = frame
         self._image = image
@@ -17,19 +17,29 @@ class IdptParticle(object):
         self._bbox = bbox
         self._mask_on_image = particle_mask_on_image
         self._location = location
+        self.x_com = location[0]  # x-position via binarized contour's Center-of-Mass
+        self.y_com = location[1]  # y-position via binarized contour's Center-of-Mass
 
         self._template = None
-        self.match_location = None
-        self.match_localization = None
         self._location_on_template = None
         self._mask_on_template = None
         self._template_contour = None
         self._in_images = None
         self.inference_stack_id = None
-        self._cm = None
-        self._max_sim = None
+
+        self._cm = None  # equivalent to cm_discrete
         self._z = None
-        self._z_default = None
+        self.z_assigned = None  # assigned z-position (e.g., known from calibration image acquisition)
+
+        self.cm_discrete = None  # equivalent to cm
+        self.z_discrete = None
+        self.x_discrete = None
+        self.y_discrete = None
+
+        self.cm_sub = None
+        self.z_sub = None
+        self.x_sub = None
+        self.y_sub = None
 
         # set the _template, _location_on_template, and _template_contour attributes.
         self._create_template(bbox=bbox)
@@ -180,29 +190,45 @@ class IdptParticle(object):
     def set_inference_stack_id(self, stack):
         self.inference_stack_id = stack
 
-    def _set_location(self, location):
-        assert len(location) == 2
-        self._location = location
+    def set_localized_discrete_position(self, sim, dx, dy, z):
+        self.cm_discrete = sim
+        self.x_discrete = self.location[0] + dx
+        self.y_discrete = self.location[1] + dy
+        self.z_discrete = z
 
-    def set_match_location(self, match_loc):
-        self.match_location = (match_loc[0], match_loc[1])
-
-    def set_match_localization(self, match_loc):
-        self.match_localization = (match_loc[0], match_loc[1])
-
-    def set_cm(self, c_measured):
-        assert isinstance(c_measured, float)
-        self._cm = c_measured
-
-    def set_max_sim(self, sim):
-        self._max_sim = sim
+    def set_localized_subresolution_position(self, sim, dx, dy, z):
+        self.cm_sub = sim
+        self.x_sub = self.location[0] + dx
+        self.y_sub = self.location[1] + dy
+        self.z_sub = z
 
     def set_z(self, z):
         assert isinstance(z, float)
         self._z = z
-        # The value originally received is stored in a separate argument
-        if self._z_default is None:
-            self._z_default = z
+
+    @property
+    def coords(self):
+        return [self.frame, self.id, self.cm_discrete, self.cm_sub, self.z_sub, self.x_sub, self.y_sub,
+                self.z_discrete, self.x_discrete, self.y_discrete]
+
+    @property
+    def calib_coords(self):
+        return [self.frame, self.id, self.z, self.x_com, self.y_com]
+
+    @property
+    def location(self):
+        """
+        Notes: the location is in index-array coordinates. Meaning, the furthest "left" or "top" value can be 0.
+        """
+        return self._location
+
+    @property
+    def cm(self):
+        return self.cm_discrete
+
+    @property
+    def z(self):
+        return self._z
 
     @property
     def bbox(self):
@@ -219,13 +245,6 @@ class IdptParticle(object):
     @property
     def in_images(self):
         return self._in_images
-
-    @property
-    def location(self):
-        """
-        Notes: the location is in index-array coordinates. Meaning, the furthest "left" or "top" value can be 0.
-        """
-        return self._location
 
     @property
     def mask_on_image(self):
@@ -268,15 +287,3 @@ class IdptParticle(object):
     @property
     def template_contour(self):
         return self._template_contour
-
-    @property
-    def cm(self):
-        return self._cm
-
-    @property
-    def max_sim(self):
-        return self._max_sim
-
-    @property
-    def z(self):
-        return self._z
