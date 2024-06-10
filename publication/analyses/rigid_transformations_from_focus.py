@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from publication.analyses.utils import iterative_closest_point as icp
+from publication.analyses.utils import fit, bin
 
 import matplotlib
 
@@ -13,6 +14,7 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 import scienceplots
+
 # A note on SciencePlots colors
 """
 Blue: #0C5DA5
@@ -215,7 +217,7 @@ def distances_xyz(AR, BR, TR):
 
 def rigid_transforms_from_focus(df_test, df_focus, min_num, distance_threshold, include_AA=True):
     # get z_true values and sort
-    zts = df_test.z_true.sort_values(ascending=True).unique()
+    zts = df_test['z_nominal'].sort_values(ascending=True).unique()
     z_range_rt = len(zts)
 
     # initialize
@@ -394,13 +396,12 @@ def read_coords_idpt(path_coords):
     return df
 
 
-def regularize_coordinates_between_image_sets(df, r0, length_per_pixel):
+def regularize_coordinates_between_image_sets(df, r0):
     """
     Align z-coordinates, make r-coordinate, scale in-plane coordinates to microns.
 
     :param df:
     :param r0:
-    :param length_per_pixel:
     :return:
     """
     # dataset alignment
@@ -438,10 +439,6 @@ def regularize_coordinates_between_image_sets(df, r0, length_per_pixel):
     # make radial coordinate
     df['r'] = np.sqrt((df['x'] - r0[0]) ** 2 + (df['y'] - r0[1]) ** 2)
 
-    # convert in-plane units to microns
-    for pix2microns in ['x', 'y', 'r']:
-        df[pix2microns] = df[pix2microns] * length_per_pixel
-
     return df
 
 
@@ -449,9 +446,6 @@ def read_coords_true_in_plane_positions(path_coords, length_per_pixel):
     dfxyzf = pd.read_excel(path_coords)
     dfxyzf['z'] = 0
     dfxyzf['gauss_rc'] = np.sqrt(dfxyzf['gauss_xc'] ** 2 + dfxyzf['gauss_yc'] ** 2)
-
-    for pix2microns in ['gauss_xc', 'gauss_yc', 'gauss_rc']:
-        dfxyzf[pix2microns] = dfxyzf[pix2microns] * length_per_pixel
 
     dfxyzf['x'] = dfxyzf['gauss_xc']
     dfxyzf['y'] = dfxyzf['gauss_yc']
@@ -468,6 +462,9 @@ if __name__ == '__main__':
     size_pixels = 16  # units: microns (size of the pixels on the CCD sensor)
     num_pixels = 512
     area_pixels = num_pixels ** 2
+    num_frames_per_step = 3
+    true_num_particles_per_frame = 88
+    true_num_particles_per_z = true_num_particles_per_frame * num_frames_per_step
 
     # B. IDPT processing details
     padding = 5  # units: pixels
@@ -479,7 +476,6 @@ if __name__ == '__main__':
     path_test_coords = join(base_dir, 'results/test/test_test-coords.xlsx')
     path_xy_at_zf = join(base_dir, 'analyses/ref/true_positions_fiji.xlsx')
     # results
-    path_results = join(base_dir, 'results/rigid_transforms')
     path_pubfigs = join(base_dir, 'results/pubfigs')
     path_supfigs = join(base_dir, 'results/supfigs')
 
@@ -488,238 +484,942 @@ if __name__ == '__main__':
     # 0. setup
     # filters
     # TODO: rename the following
-    z_error_limit = 5  # units: microns
-    filter_step_size = z_error_limit
-    in_plane_distance_threshold = np.round(2 * microns_per_pixel, 1)  # units: microns
+    out_of_plane_threshold = 5  # units: microns
+    in_plane_threshold = np.round(2 * microns_per_pixel, 1)  # units: microns
     min_num_particles_for_icp = 5  # threshold number of particles per frame for ICP
     min_cm = 0.0
+    min_counts = 1
+    min_counts_bin_z = 20
+    min_counts_bin_r = 20
+    min_counts_bin_rz = 5
 
     # -
 
-    # 1. read test coords
-    dft = read_coords_idpt(path_test_coords)
+    # ------------------------------------------------------------------------------------------------------------------
+    # EVALUATE Z_TRUE RELATIVE TO IDPT FITTED PLANE
 
-    # 2. pre-process coordinates
-    dft = regularize_coordinates_between_image_sets(dft, r0=(img_xc, img_yc), length_per_pixel=microns_per_pixel)
+    fit_plane_analysis = False
+    if fit_plane_analysis:
 
-    # 3. read coords: "true" in-plane positions of particles at focus (measured using ImageJ)
-    dfxyzf = read_coords_true_in_plane_positions(path_xy_at_zf, length_per_pixel=microns_per_pixel)
+        # 0. setup
+        path_results = join(base_dir, 'results/fit_plane')
 
-    # 4. filter "invalid" measurements
-    dft = dft[dft['error'].abs() < filter_step_size]
-    dft = dft[dft['cm'] > min_cm]
+        # specific settings (that should get deleted after confirming they aren't needed)
+        correct_tilt = True  # False True
+        correct_spct_tilt_using_idpt_fit_plane = True
+        assign_z_true_to_fit_plane_xyzc = True
+        # idpt
+        i_test_name = 'test_coords_particle_image_stats_tm16_cm19_aligned'  # _dzf-post-processed'
+        i_calib_id_from_testset = 54  # 42
+        i_calib_id_from_calibset = 54  # 42
+        # step 0. filter dft such that it only includes particles that could reasonably be on the tilt surface
+        reasonable_z_tilt_limit = 3.25
+        reasonable_r_tilt_limit = int(np.round(250 / microns_per_pixel))  # convert units microns to pixels
 
-    # ---
+        # -
 
-    # 5. rigid transformations from focus using ICP
-    dfBB_icp, df_icp = rigid_transforms_from_focus(dft, dfxyzf, min_num_particles_for_icp, in_plane_distance_threshold)
-    dfBB_icp.to_excel(join(path_results, 'dfBB_icp.xlsx'))
-    df_icp.to_excel(join(path_results, 'df_icp.xlsx'))
+        # 1. read test coords
+        # TODO: NOTE: these are the WRONG TEST COORDS! This should read the output of IDPT-fitted plane corrected coords!
+        dft = read_coords_idpt(path_test_coords)
 
-    # 6. depth-dependent r.m.s. error
-    dfdz_icp = df_icp.groupby('z').mean().reset_index()
-    dfdz_icp.to_excel(join(path_results, 'dfdz_icp.xlsx'))
-
-    # 6. depth-averaged r.m.s. error
-    dfBB_icp_mean = depth_averaged_rmse_rigid_transforms_from_focus(dfBB_icp)
-    dfBB_icp_mean.to_excel(join(path_results, 'icp_mean-rmse.xlsx'))
-
-    # ----------------------------------------------------------------------------------------------------------------------
-    # 7. Publication figures
-
-    plot_pubfigs = False
-    if plot_pubfigs:
-
-        dfirt = dfdz_icp
+        # 2. pre-process coordinates
+        dft = regularize_coordinates_between_image_sets(dft, r0=(img_xc, img_yc))
 
         # ---
 
-        # read: results from error relative to calibration particle
-        path_read_err_rel_p_cal = join('/Users/mackenzie/Desktop/gdpyt-characterization/methodfigs/'
-                                       '11.06.21_error_relative_calib_particle',
-                                       'results',
-                                       'relative-to-tilt-corr-calib-particle_08.06.23_raw-original',
-                                       'spct-is-corr-fc',
-                                       'zerrlim{}_cmin0.5_mincountsallframes{}'.format(z_error_limit, min_counts),
-                                       'ztrue_is_fit-plane-xyzc',
-                                       'bin-z_' + 'zerrlim{}_mincountsallframes{}'.format(z_error_limit, min_counts))
+        # 4. FUNCTION: fit plane at each z-position
 
-        dfim = pd.read_excel(join(path_read_err_rel_p_cal, 'idpt_cm0.5_bin-z_rmse-z.xlsx'))
-        dfsm = pd.read_excel(join(path_read_err_rel_p_cal, 'spct_cm0.5_bin-z_rmse-z.xlsx'))
-        dfssm = pd.read_excel(join(path_read_err_rel_p_cal, 'spct_cm0.9_bin-z_rmse-z.xlsx'))
+        # get z-positions
+        z_nominals = dft['z_nominal'].unique()
 
-        # filter before plotting
-        dfim = dfim[dfim['count_id'] > min_counts_bin_z]
-        dfsm = dfsm[dfsm['count_id'] > min_counts_bin_z]
-        dfssm = dfssm[dfssm['count_id'] > min_counts_bin_z]
+        # initialize lists
+        dfis = []
+        i_fit_plane_img_xyzc = []
+        i_fit_plane_rmsez = []
+
+        # iterate through z-positions
+        for z_nominal in z_nominals:
+            # clear z_calib
+            z_calib = None
+            i_z_calib = None
+
+            # get all measurements at this nominal z-position
+            dfit = dft[dft['z_nominal'] == z_nominal]
+
+            # --- FUNCTION: correct tilt
+            # step 0. filter dft such that it only includes particles that could reasonably be on the tilt surface
+            dfit_within_tilt = dfit[np.abs(dfit['z'] - z_nominal) < reasonable_z_tilt_limit]
+
+            # step 0.5. check if calibration particle is in this new group
+            # TODO: is this ever actually used? Need to verify.
+            if not i_calib_id_from_testset in dfit_within_tilt.id.unique():
+                z_calib = -3.6
+
+            # step 1. fit plane to particle positions
+            i_dict_fit_plane = fit.fit_in_focus_plane(df=dfit_within_tilt,  # note: x,y units are pixels at this point
+                                                      param_zf='z',
+                                                      microns_per_pixel=microns_per_pixel,
+                                                      img_xc=img_xc,
+                                                      img_yc=img_yc)
+
+            i_fit_plane_img_xyzc.append(i_dict_fit_plane['z_f_fit_plane_image_center'])
+            i_fit_plane_rmsez.append(i_dict_fit_plane['rmse'])
+
+            # step 2. correct coordinates using fitted plane
+            dfit['z_plane'] = fit.calculate_z_of_3d_plane(dfit.x, dfit.y, popt=i_dict_fit_plane['popt_pixels'])
+            dfit['z_plane'] = dfit['z_plane'] - i_dict_fit_plane['z_f_fit_plane_image_center']
+            dfit['z_corr'] = dfit['z'] - dfit['z_plane']
+
+            # add column for tilt
+            dfit['tilt_x_degrees'] = i_dict_fit_plane['tilt_x_degrees']
+            dfit['tilt_y_degrees'] = i_dict_fit_plane['tilt_y_degrees']
+
+            # rename
+            dfit = dfit.rename(columns={'z': 'z_no_corr'})
+            dfit = dfit.rename(columns={'z_corr': 'z'})
+
+            # get average position of calibration particle
+            if assign_z_true_to_fit_plane_xyzc:
+                i_z_calib = i_dict_fit_plane['z_f_fit_plane_image_center']
+
+            # TODO: rename columns to be more intuitive
+            dfit['z_calib'] = i_z_calib
+            dfit['error_rel_p_calib'] = dfit['z'] - i_z_calib
+
+            dfis.append(dfit)
+
+        # -
+
+        dfis = pd.concat(dfis)
+
+        #TODO: export: (1) all measurements (valid & invalid), (2) invalid only, (3) valid only
+        # make absolute error
+        dfis['abs_error_rel_p_calib'] = dfis['error_rel_p_calib'].abs()
+
+        # Export 1/3: all measurements (valid + invalid)
+        dfis.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack_all.xlsx'))
+
+        # Export 2/3: invalid measurements only
+        dfis_invalid = dfis[dfis['abs_error_rel_p_calib'] > out_of_plane_threshold]
+        dfis_invalid.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack_invalid-only.xlsx'))
+
+        # Export 3/3: valid measurements only
+        dfis = dfis[dfis['abs_error_rel_p_calib'] < out_of_plane_threshold]
+        dfis.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack.xlsx'))
+
+
 
         # ---
 
-        # plot local correlation coefficient
+        plot_fit_plane = False
+        if plot_fit_plane:
 
-        # setup - general
-        clr_i = sciblue
-        clr_s = scigreen
-        clr_ss = sciorange
-        if include_cmin_zero_nine:
-            lgnd_i = 'IDPT' + r'$(C_{m,min}=0.5)$'
-            lgnd_s = 'SPCT' + r'$(C_{m,min}=0.5)$'
-            lgnd_ss = 'SPCT' + r'$(C_{m,min}=0.9)$'
-        else:
+            # analyze fit plane xyzc and rmse-z
+            df_fit_plane = pd.DataFrame(data=np.vstack([z_nominals, i_fit_plane_img_xyzc, i_fit_plane_rmsez]).T,
+                                        columns=['z_nominal', 'iz_xyc', 'irmsez'])
+
+            df_fit_plane['iz_diff'] = df_fit_plane['iz_xyc'] - df_fit_plane['z_nominal']
+            df_fit_plane.to_excel(join(path_results, 'both_fit-respective-plane-xyzc-rmsez_by_z-true.xlsx'))
+
+            # plot fit_plane_image_xyzc (the z-position at the center of the image) and rmse-z as a function of z_true
+            fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+            ax1.plot(df_fit_plane['z_nominal'], df_fit_plane['iz_diff'], '-o', label='IDPT')
+            ax2.plot(df_fit_plane['z_nominal'], df_fit_plane['irmsez'], '-o', label='IDPT')
+            ax1.set_ylabel(r'$z_{nom} - z_{xyc} \: (\mu m)$')
+            ax2.set_ylabel('r.m.s.e.(z) fit plane ' + r'$(\mu m)$')
+            ax2.set_xlabel(r'$z_{nominal}$')
+            plt.tight_layout()
+            plt.savefig(join(path_results, 'both_fit-respective-plane-xyzc-rmsez_by_z-true.png'))
+            plt.close()
+
+            # ---
+
+            dfig = dfis.copy()
+            fig, ax = plt.subplots()
+            ax.scatter(dfig['r'], dfig['error_rel_p_calib'], s=2, label='IDPT')
+            ax.set_xlabel('r')
+            ax.set_ylabel(r'$\epsilon_{z} \: (\mu m)$')
+            ax.legend()
+            plt.tight_layout()
+            plt.savefig(join(path_results, 'scatter-error_rel_p_calib___.png'))
+            plt.close()
+
+            fig, ax = plt.subplots()
+            ax.scatter(dfig['r'], dfig['abs_error_rel_p_calib'], s=2, label='IDPT')
+            ax.set_xlabel('r')
+            ax.set_ylabel(r'$|\epsilon_{z}| \: (\mu m)$')
+            ax.legend()
+            plt.tight_layout()
+            plt.savefig(join(path_results, 'scatter-abs-error_rel_p_calib___.png'))
+            plt.close()
+
+            # ---
+
+            # plot tilt per frame
+            dfig = dfig.groupby('z_nominal').mean().reset_index()
+            # TODO: this should be (512 + 2 * padding) * microns_per_pixel
+            xspan = 512 * microns_per_pixel
+            ms = 4
+
+            fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+
+            ax1.plot(dfig['z_nominal'], dfig.tilt_x_degrees, '-o', ms=ms, label='x', color='r')
+            ax1.plot(dfig['z_nominal'], dfig.tilt_y_degrees, '-s', ms=ms, label='y', color='k')
+
+            ax2.plot(dfig['z_nominal'], np.abs(xspan * np.tan(np.deg2rad(dfig.tilt_x_degrees))), '-o', ms=ms, label='x', color='r')
+            ax2.plot(dfig['z_nominal'], np.abs(xspan * np.tan(np.deg2rad(dfig.tilt_y_degrees))), '-s', ms=ms, label='y', color='k')
+
+            ax1.set_ylabel('Tilt ' + r'$(deg.)$')
+            ax1.legend()
+            ax2.set_ylabel(r'$\Delta z_{FoV} \: (\mu m)$')
+            ax2.set_xlabel(r'$z_{nominal} \: (\mu m)$')
+            plt.tight_layout()
+            plt.savefig(join(path_results, 'sample-tilt-by-fit-IDPT_by_z-true.png'))
+            plt.close()
+
+            # -
+
+            fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True, figsize=(size_x_inches, size_y_inches * 1.2))
+
+            ax1.plot(dfig['z_nominal'], dfig.tilt_x_degrees, '-o', ms=ms, label='x', color='r')
+            ax1.plot(dfig['z_nominal'], dfig.tilt_y_degrees, '-s', ms=ms, label='y', color='k')
+
+            ax2.plot(dfig['z_nominal'], np.abs(xspan * np.tan(np.deg2rad(dfig.tilt_x_degrees))), '-o', ms=ms, label='x', color='r')
+            ax2.plot(dfig['z_nominal'], np.abs(xspan * np.tan(np.deg2rad(dfig.tilt_y_degrees))), '-s', ms=ms, label='y', color='k')
+
+            ax3.plot(df_fit_plane['z_nominal'], df_fit_plane['irmsez'], '-o', ms=ms, label='IDPT')
+            # ax3.plot(df_fit_plane['z_nominal'], df_fit_plane['srmsez'], '-o', label='SPCT')
+
+            ax1.set_ylabel('Tilt ' + r'$(deg.)$')
+            ax1.legend()
+            ax2.set_ylabel(r'$\Delta z_{FoV} \: (\mu m)$')
+            ax3.set_ylabel(r'$\sigma_z^{fit} \: (\mu m)$')
+            ax3.set_xlabel(r'$z_{nominal} \: (\mu m)$')
+            ax3.legend()
+            plt.tight_layout()
+            plt.savefig(join(path_results, 'sample-tilt-and-rmsez-by-fit-IDPT-and_by_z-true.png'))
+            plt.close()
+
+            # -
+
+            fig, ax = plt.subplots(figsize=(size_x_inches * 1.05, size_y_inches * 0.75))
+
+            ax.plot(df_fit_plane['irmsez'], np.abs(dfig.tilt_x_degrees), 'o', ms=ms, label='x', color='r')
+            ax.plot(df_fit_plane['irmsez'], np.abs(dfig.tilt_y_degrees), 's', ms=ms, label='y', color='k')
+
+            ax.set_ylabel('Tilt ' + r'$(deg.)$')
+            ax.set_xlabel(r'$\sigma_z^{fit} \: (\mu m)$')
+            ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+            plt.tight_layout()
+            plt.savefig(join(path_results, 'abs-sample-tilt_by_rmsez-fit-IDPT.png'))
+            plt.close()
+
+        analyze_rmse_relative_calib_post_tilt_corr = False  # False True
+        if analyze_rmse_relative_calib_post_tilt_corr:
+            plot_bin_z = True
+            plot_bin_r = True
+            plot_bin_r_z = True
+            plot_bin_id = True
+            plot_cmin_zero_nine = False
+
+            correct_tilt_by_fit_idpt = True
+            assign_z_true_to_fit_plane_xyzc = True
+
+            dfi = dfis.copy()
+
+            # ---
+
+            # process data
+
+            # number of z-positions
+            num_z_positions = len(dfi['z_nominal'].unique())
+            true_total_num = true_num_particles_per_z * num_z_positions
+
+            # scale to microns
+            dfi['r_microns'] = dfi['r'] * microns_per_pixel
+
+            # square all errors
+            dfi['rmse_z'] = dfi['error_rel_p_calib'] ** 2
+
+            # ---
+
+            # ---
+
+            # -------------
+            # bin by axial position
+            path_save_z = path_results
+
+            # bin by z
+
+            if plot_bin_z:
+
+                # setup 2D binning
+                z_trues = dfi['z_nominal'].unique()
+
+                column_to_bin = 'z_nominal'
+                column_to_count = 'id'
+                bins = z_trues
+                round_to_decimal = 1
+                return_groupby = True
+
+                # compute 1D bin (z)
+                dfim, dfistd = bin.bin_generic(dfi, column_to_bin, column_to_count, bins, round_to_decimal, return_groupby)
+
+                # compute rmse-z
+                dfim['rmse_z'] = np.sqrt(dfim['rmse_z'])
+
+                # compute final stats and package prior to exporting
+                def package_for_export(df_):
+                    """ df = package_for_export(df_=df) """
+                    df_['true_num_per_z'] = true_num_particles_per_z
+                    df_['percent_meas'] = df_['count_id'] / df_['true_num_per_z']
+                    df_ = df_.rename(columns=
+                                     {
+                                      'z_calib': 'z_assert_true',
+                                      'error_rel_p_calib': 'error_rel_z_assert_true',
+                                      'abs_error_rel_p_calib': 'abs_error_rel_z_assert_true'}
+                                     )
+                    df_ = df_.drop(columns=['frame', 'id', 'z_no_corr', 'x', 'y', 'r', 'z_plane', 'r_microns'])
+                    return df_
+
+
+                dfim = package_for_export(df_=dfim)
+
+                # export
+                dfim.to_excel(join(path_save_z, 'idpt_cm0.5_bin-z_rmse-z.xlsx'))
+
+                # ---
+
+                # plotting
+
+                # filter before plotting
+                dfim = dfim[dfim['count_id'] > min_counts_bin_z]
+
+
+                # plot: rmse_z by z_nominal (i.e., bin)
+                fig, ax = plt.subplots(figsize=(size_x_inches * 1., size_y_inches * 1.))
+
+                ax.plot(dfim.bin, dfim['rmse_z'], '-o', label='IDPT' + r'$(C_{m,min}=0.5)$')
+
+                save_lbl = 'bin-z_rmse-z_by_z'
+                ax.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
+                ax.set_ylim([0, 3.25])
+                ax.set_yticks([0, 1, 2, 3])
+                ax.set_xlabel(r'$z \: (\mu m)$')
+                ax.set_xticks([-50, -25, 0, 25, 50])
+                ax.legend(loc='upper left')  # , borderpad=0.25, handletextpad=0.6, borderaxespad=0.3, markerscale=0.75)
+
+                plt.tight_layout()
+                plt.savefig(join(path_save_z, save_lbl + '.png'))
+                plt.close()
+
+                # ---
+
+                # plot: local (1) correlation coefficient, (2) percent measure, and (3) rmse_z
+
+                # setup
+                zorder_i, zorder_s, zorder_ss = 3.5, 3.3, 3.4
+                ms = 4
+
+                # plot
+                fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True,
+                                                    figsize=(size_x_inches * 1.35, size_y_inches * 1.25))
+
+                ax1.plot(dfim.bin, dfim['cm'], '-o', ms=ms, label='IDPT', zorder=zorder_i)
+                ax2.plot(dfim.bin, dfim['percent_meas'], '-o', ms=ms, label='IDPT', zorder=zorder_i)
+                ax3.plot(dfim.bin, dfim['rmse_z'], '-o', ms=ms, label='IDPT', zorder=zorder_i)
+
+                save_lbl = 'bin-z_local-cm-percent-meas-rmse-z_by_z'
+
+                ax1.set_ylabel(r'$C_{m}^{\delta}$')
+                ax1.legend(loc='upper left',
+                           bbox_to_anchor=(
+                           1, 1))  # , borderpad=0.25, handletextpad=0.6, borderaxespad=0.3, markerscale=0.75)
+
+                ax2.set_ylabel(r'$\phi_{z}^{\delta}$')
+
+                ax3.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
+                # ax3.set_ylim([0, 2.8])
+                # ax3.set_yticks([0, 1, 2])
+                ax3.set_xlabel(r'$z \: (\mu m)$')
+                ax3.set_xticks([-50, -25, 0, 25, 50])
+
+                plt.tight_layout()
+                plt.savefig(join(path_save_z, save_lbl + '.png'))
+                plt.close()
+
+                # ---
+
+                # compute mean rmse-z (using 1 bin)
+                bin_h = 1
+
+                dfim, _ = bin.bin_generic(dfi, column_to_bin, column_to_count, bin_h, round_to_decimal, return_groupby)
+
+                dfim['rmse_z'] = np.sqrt(dfim['rmse_z'])
+
+
+                # compute final stats and package prior to exporting
+                def package_for_export(df_):
+                    """ df = package_for_export(df_=df) """
+                    df_['true_num'] = true_total_num
+                    df_['percent_meas'] = df_['count_id'] / df_['true_num']
+                    df_ = df_.rename(columns={'error_rel_p_calib': 'error_rel_z_assert_true',
+                                              'abs_error_rel_p_calib': 'abs_error_rel_z_assert_true'})
+                    df_ = df_.drop(
+                        columns=['frame', 'id', 'z_no_corr', 'z_calib', 'x', 'y', 'r', 'z_plane', 'r_microns'])
+                    return df_
+
+
+                dfim = package_for_export(df_=dfim)
+
+                dfim.to_excel(join(path_save_z, 'idpt_cm0.5_mean_rmse-z_by_z.xlsx'))
+
+            # -
+
+            # -------------------
+
+            # -
+
+            # -------------------
+            # bin by radial position
+
+            # bin by r
+
+            if plot_bin_r:
+                path_save_r = path_results
+
+                # setup 2D binning
+                r_bins = 4
+
+                column_to_bin = 'r_microns'
+                column_to_count = 'id'
+                bins = r_bins
+                round_to_decimal = 1
+                return_groupby = True
+
+                # compute 1D bin (z)
+                dfim, dfistd = bin.bin_generic(dfi, column_to_bin, column_to_count, bins, round_to_decimal, return_groupby)
+
+                # compute rmse-z
+                dfim['rmse_z'] = np.sqrt(dfim['rmse_z'])
+
+
+                # compute final stats and package prior to exporting
+                def package_for_export(df_):
+                    """ df = package_for_export(df_=df) """
+                    df_ = df_.rename(columns=
+                                     {'r': 'r_pixels',
+                                      'error_rel_p_calib': 'error_rel_z_assert_true',
+                                      'abs_error_rel_p_calib': 'abs_error_rel_z_assert_true'}
+                                     )
+                    df_ = df_.drop(columns=['frame', 'id', 'z_no_corr', 'x', 'y', 'z_plane', 'z_calib',
+                                            'tilt_x_degrees', 'tilt_y_degrees'])
+                    return df_
+
+
+                dfim = package_for_export(df_=dfim)
+
+                # export
+                dfim.to_excel(join(path_save_r, 'idpt_cm0.5_bin-r_rmse-z.xlsx'))
+
+                # ---
+
+                # plotting
+
+                # filter before plotting
+                dfim = dfim[dfim['count_id'] > min_counts_bin_r]
+
+                # plot
+                fig, ax = plt.subplots(figsize=(size_x_inches * 1., size_y_inches * 1.))
+
+                ax.plot(dfim.bin, dfim['rmse_z'], '-o', label='IDPT' + r'$(C_{m,min}=0.5)$')
+
+                save_lbl = 'bin-r_rmse-z_by_r'
+                ax.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
+                ax.set_ylim([0, 2.4])
+                ax.set_xlim([50, 500])
+                ax.set_xticks([100, 200, 300, 400, 500])
+                ax.set_xlabel(r'$r \: (\mu m)$')
+                # ax.set_xticks([-50, -25, 0, 25, 50])
+                ax.legend(loc='upper left')  # , borderpad=0.25, handletextpad=0.6, borderaxespad=0.3, markerscale=0.75)
+
+                plt.tight_layout()
+                plt.savefig(join(path_save_r, save_lbl + '.png'))
+                plt.close()
+
+                # ---
+
+                # compute mean rmse-z (using 1 bin)
+                bin_h = 1
+
+                dfim, _ = bin.bin_generic(dfi, column_to_bin, column_to_count, bin_h, round_to_decimal, return_groupby)
+
+                dfim['rmse_z'] = np.sqrt(dfim['rmse_z'])
+
+                # compute final stats and package prior to exporting
+                def package_for_export(df_):
+                    """ df = package_for_export(df_=df) """
+                    df_ = df_.rename(columns=
+                                     {'error_rel_p_calib': 'error_rel_z_assert_true',
+                                      'abs_error_rel_p_calib': 'abs_error_rel_z_assert_true'}
+                                     )
+                    df_ = df_.drop(columns=['frame', 'id', 'z_no_corr', 'x', 'y', 'z_plane', 'z_calib',
+                                            'tilt_x_degrees', 'tilt_y_degrees', 'r', 'r_microns'])
+                    return df_
+
+
+                dfim = package_for_export(df_=dfim)
+
+                dfim.to_excel(join(path_save_r, 'idpt_cm0.5_mean_rmse-z_by_r.xlsx'))
+
+            # -------------------
+
+            # -
+
+            # -------------------
+            # bin by radial and axial position
+
+            # 2d-bin by r and z
+
+            if plot_bin_r_z:
+                path_save_rz = path_results
+
+                # setup 2D binning
+                z_trues = dfi['z_nominal'].unique()
+                r_bins = [150, 300, 450]
+
+                columns_to_bin = ['r_microns', 'z_nominal']
+                column_to_count = 'id'
+                bins = [r_bins, z_trues]
+                round_to_decimals = [1, 1]
+                return_groupby = True
+                plot_fit = False
+
+                # compute 2D bin (r, z)
+                dfim, dfistd = bin.bin_generic_2d(dfi, columns_to_bin, column_to_count, bins, round_to_decimals,
+                                                  min_counts_bin_rz, return_groupby)
+
+                # compute rmse-z
+                dfim['rmse_z'] = np.sqrt(dfim['rmse_z'])
+
+                # resolve floating point bin selecting
+                dfim = dfim.round({'bin_tl': 0, 'bin_ll': 1})
+                dfistd = dfistd.round({'bin_tl': 0, 'bin_ll': 1})
+                dfim = dfim.sort_values(['bin_tl', 'bin_ll'])
+                dfistd = dfistd.sort_values(['bin_tl', 'bin_ll'])
+
+                # compute final stats and package prior to exporting
+                def package_for_export(df_):
+                    """ df = package_for_export(df_=df) """
+                    df_ = df_.rename(columns=
+                                     {
+                                      'z_calib': 'z_assert_true',
+                                      'r': 'r_pixels',
+                                      'error_rel_p_calib': 'error_rel_z_assert_true',
+                                      'abs_error_rel_p_calib': 'abs_error_rel_z_assert_true'}
+                                     )
+                    df_ = df_.drop(columns=['frame', 'id', 'z_no_corr', 'x', 'y', 'z_plane',
+                                            'tilt_x_degrees', 'tilt_y_degrees'])
+                    return df_
+
+
+                dfim = package_for_export(df_=dfim)
+
+                # export
+                dfim.to_excel(join(path_save_rz, 'idpt_cm0.5_bin_r-z_rmse-z.xlsx'))
+
+                # ---
+
+                # plot
+                clrs = ['black', 'blue', 'red']
+                if plot_cmin_zero_nine:
+                    fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True,
+                                                        figsize=(size_x_inches * 1, size_y_inches * 1.25))
+                else:
+                    fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, figsize=(size_x_inches * 1, size_y_inches * 1))
+
+                for i, bin_r in enumerate(dfim.bin_tl.unique()):
+                    dfibr = dfim[dfim['bin_tl'] == bin_r]
+                    ax1.plot(dfibr.bin_ll, dfibr['rmse_z'], '-o', ms=4, color=clrs[i], label=int(np.round(bin_r, 0)))
+
+                ax1.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
+                ax1.set_ylim([0, 3.2])
+                ax1.set_yticks([0, 1, 2, 3])
+                ax1.legend(loc='upper center', ncol=3, title=r'$r^{\delta} \: (\mu m)$')  # ,  title=r'$r^{\delta}$')
+                # , borderpad=0.25, handletextpad=0.6, borderaxespad=0.3, markerscale=0.75)
+
+                ax2.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
+                ax2.set_ylim([0, 3.2])
+                ax2.set_yticks([0, 1, 2, 3])
+
+                ax2.set_xlabel(r'$z \: (\mu m)$')
+                ax2.set_xticks([-50, -25, 0, 25, 50])
+
+                save_lbl = 'bin_r-z_rmse-z_by_r-z'
+
+                plt.tight_layout()
+                plt.savefig(join(path_save_rz, save_lbl + '.png'))
+                plt.close()
+
+                # ---
+
+                # compute mean rmse-z per radial bin
+                bins = [r_bins, 1]
+                dfim, dfistd = bin.bin_generic_2d(dfi, columns_to_bin, column_to_count, bins, round_to_decimals,
+                                                  min_counts_bin_rz, return_groupby)
+
+                dfim['rmse_z'] = np.sqrt(dfim['rmse_z'])
+
+
+                # compute final stats and package prior to exporting
+                def package_for_export(df_):
+                    """ df = package_for_export(df_=df) """
+                    df_ = df_.rename(columns=
+                                     {'r': 'r_pixels',
+                                      'error_rel_p_calib': 'error_rel_z_assert_true',
+                                      'abs_error_rel_p_calib': 'abs_error_rel_z_assert_true'}
+                                     )
+                    df_ = df_.drop(columns=['frame', 'id', 'z_no_corr', 'x', 'y', 'z_plane', 'z_calib',
+                                            'tilt_x_degrees', 'tilt_y_degrees'])
+                    return df_
+
+
+                dfim = package_for_export(df_=dfim)
+
+                dfim.to_excel(join(path_save_rz, 'idpt_cm0.5_bin-rz_mean-rmse-z.xlsx'))
+
+            # -------------------
+
+            # -------------
+
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # EVALUATE X_TRUE, Y_TRUE RELATIVE TO RIGID TRANSFORMATIONS FROM FOCUS
+
+    rt_from_f = False
+    if rt_from_f:
+        dfis = pd.read_excel(join(base_dir, 'results/fit_plane', 'idpt_error_relative_calib_particle_stack.xlsx'))
+
+        # 0. setup
+        path_results = join(base_dir, 'results/rigid_transforms')
+
+        # 1. read test coords
+        # NOTE: these are the WRONG TEST COORDS! This should read the output of IDPT-fitted plane corrected coords!
+        # dft = read_coords_idpt(path_test_coords)
+        dft = dfis.copy()
+
+        # 2. pre-process coordinates
+        # NOTE: not necessary here since already done when fitting IDPT plane
+        # dft = regularize_coordinates_between_image_sets(dft, r0=(img_xc, img_yc), length_per_pixel=microns_per_pixel)
+
+        # 3. read coords: "true" in-plane positions of particles at focus (measured using ImageJ)
+        dfxyzf = read_coords_true_in_plane_positions(path_xy_at_zf, length_per_pixel=microns_per_pixel)
+
+        # 4. convert x, y, r coordinates from units pixels to microns
+        # TODO: convert x,y,r to microns
+        for pix2microns in ['x', 'y', 'r']:
+            dft[pix2microns] = dft[pix2microns] * microns_per_pixel
+            dfxyzf[pix2microns] = dfxyzf[pix2microns] * microns_per_pixel
+
+        # ---
+
+        # 5. rigid transformations from focus using ICP
+        dfBB_icp, df_icp = rigid_transforms_from_focus(dft, dfxyzf, min_num_particles_for_icp, in_plane_threshold)
+        dfBB_icp.to_excel(join(path_results, 'dfBB_icp.xlsx'))
+        df_icp.to_excel(join(path_results, 'df_icp.xlsx'))
+
+        # 6. depth-dependent r.m.s. error
+        dfdz_icp = df_icp.groupby('z').mean().reset_index()
+        dfdz_icp.to_excel(join(path_results, 'dfdz_icp.xlsx'))
+
+        # 6. depth-averaged r.m.s. error
+        dfBB_icp_mean = depth_averaged_rmse_rigid_transforms_from_focus(dfBB_icp)
+        dfBB_icp_mean.to_excel(join(path_results, 'icp_mean-rmse.xlsx'))
+
+        # --------------------------------------------------------------------------------------------------------------
+        # 7. Publication figures
+
+        plot_pubfigs = False
+        if plot_pubfigs:
+
+            dfirt = dfdz_icp
+
+            # ---
+
+            # read: results from error relative to calibration particle
+            """path_read_err_rel_p_cal = join('/Users/mackenzie/Desktop/gdpyt-characterization/methodfigs/'
+                                           '11.06.21_error_relative_calib_particle',
+                                           'results',
+                                           'relative-to-tilt-corr-calib-particle_08.06.23_raw-original',
+                                           'spct-is-corr-fc',
+                                           'zerrlim{}_cmin0.5_mincountsallframes{}'.format(z_error_limit, min_counts),
+                                           'ztrue_is_fit-plane-xyzc',
+                                           'bin-z_' + 'zerrlim{}_mincountsallframes{}'.format(z_error_limit,
+                                                                                              min_counts))"""
+
+            path_read_err_rel_p_cal = join(join(base_dir, 'results/fit_plane'))
+            dfim = pd.read_excel(join(path_read_err_rel_p_cal, 'idpt_cm0.5_bin-z_rmse-z.xlsx'))
+
+            # ---
+
+            # plot local correlation coefficient
+
+            # setup - general
+            clr_i = sciblue
+            clr_s = scigreen
+            clr_ss = sciorange
             lgnd_i = 'IDPT'
             lgnd_s = 'SPCT'
             lgnd_ss = 'SPCT'
-        zorder_i, zorder_s, zorder_ss = 3.5, 3.3, 3.4
+            zorder_i, zorder_s, zorder_ss = 3.5, 3.3, 3.4
 
-        ms = 4
-        xlbl = r'$z \: (\mu m)$'
-        xticks = [-50, -25, 0, 25, 50]
+            ms = 4
+            xlbl = r'$z \: (\mu m)$'
+            xticks = [-50, -25, 0, 25, 50]
 
-        # -
+            # -
 
-        # setup plot
+            # setup plot
 
-        # variables: error relative calib particle
-        px = 'bin'
-        py = 'cm'
-        pyb = 'percent_meas'
-        py4 = 'rmse_z'
+            # variables: error relative calib particle
+            px = 'bin'
+            py = 'cm'
+            pyb = 'percent_meas'
+            py4 = 'rmse_z'
 
-        # variables: rigid transformations
-        px1 = 'z'
-        py1 = 'rmse_x'
-        py2 = 'rmse_y'
+            # variables: rigid transformations
+            px1 = 'z'
+            py1 = 'rmse_x'
+            py2 = 'rmse_y'
 
-        ylbl_cm = r'$C_{m}^{\delta}$'
-        ylim_cm = [0.71, 1.02]  # data range: [0.7, 1.0]
-        yticks_cm = [0.8, 0.9, 1.0]  # data ticks: np.arange(0.75, 1.01, 0.05)
+            ylbl_cm = r'$C_{m}^{\delta}$'
+            ylim_cm = [0.71, 1.02]  # data range: [0.7, 1.0]
+            yticks_cm = [0.8, 0.9, 1.0]  # data ticks: np.arange(0.75, 1.01, 0.05)
 
-        ylbl_phi = r'$\phi^{\delta}$'
-        ylim_phi = [0, 1.1]
-        yticks_phi = [0, 0.5, 1]
+            ylbl_phi = r'$\phi^{\delta}$'
+            ylim_phi = [0, 1.1]
+            yticks_phi = [0, 0.5, 1]
 
-        ylbl_rmse_xy = r'$\sigma_{xy}^{\delta} \: (\mu m)$'
-        ylim_rmse_xy = [0, 1]
-        yticks_rmse_xy = [0, 0.5, 1]
+            ylbl_rmse_xy = r'$\sigma_{xy}^{\delta} \: (\mu m)$'
+            ylim_rmse_xy = [0, 1]
+            yticks_rmse_xy = [0, 0.5, 1]
 
-        ylbl_rmse_z = r'$\sigma_{z}^{\delta} \: (\mu m)$'
-        ylim_rmse_z = [0, 2.6]
-        yticks_rmse_z = [0, 1, 2]
+            ylbl_rmse_z = r'$\sigma_{z}^{\delta} \: (\mu m)$'
+            ylim_rmse_z = [0, 2.6]
+            yticks_rmse_z = [0, 1, 2]
 
-        # plot
-        if include_cmin_zero_nine:
-            fig, axs = plt.subplots(2, 2, sharex=True, figsize=(size_x_inches * 2, size_y_inches * 1.25))
-        else:
+            # plot
             fig, axs = plt.subplots(2, 2, sharex=True, figsize=(size_x_inches * 2, size_y_inches * 1.05))
 
-        ax2, ax3, ax1, ax4 = axs.ravel()
+            ax2, ax3, ax1, ax4 = axs.ravel()
 
-        ax1.plot(dfim[px], dfim[py], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
-        ax1.plot(dfsm[px], dfsm[py], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
+            ax1.plot(dfim[px], dfim[py], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
 
-        if include_cmin_zero_nine:
-            ax1.plot(dfssm[px], dfssm[py], '-o', ms=ms, color=clr_ss, label=lgnd_ss, zorder=zorder_ss)
+            ax1.set_xlabel(xlbl)
+            ax1.set_xticks(xticks)
+            ax1.set_ylabel(ylbl_cm)
+            ax1.set_ylim(ylim_cm)
+            ax1.set_yticks(yticks_cm)
+            # ax1.legend(loc='lower center')  # loc='upper left', bbox_to_anchor=(1, 1))
 
-        ax1.set_xlabel(xlbl)
-        ax1.set_xticks(xticks)
-        ax1.set_ylabel(ylbl_cm)
-        ax1.set_ylim(ylim_cm)
-        ax1.set_yticks(yticks_cm)
-        # ax1.legend(loc='lower center')  # loc='upper left', bbox_to_anchor=(1, 1))
+            # -
 
-        # -
+            ax2.plot(dfim[px], dfim[pyb], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
 
-        ax2.plot(dfim[px], dfim[pyb], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
-        ax2.plot(dfsm[px], dfsm[pyb], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
+            # ax2.set_xlabel(xlbl)
+            # ax2.set_xticks(xticks)
+            ax2.set_ylabel(ylbl_phi)
+            ax2.set_ylim(ylim_phi)
+            ax2.set_yticks(yticks_phi)
 
-        if include_cmin_zero_nine:
-            ax2.plot(dfssm[px], dfssm[pyb], '-o', ms=ms, color=clr_ss, label=lgnd_ss, zorder=zorder_ss)
-
-        # ax2.set_xlabel(xlbl)
-        # ax2.set_xticks(xticks)
-        ax2.set_ylabel(ylbl_phi)
-        ax2.set_ylim(ylim_phi)
-        ax2.set_yticks(yticks_phi)
-
-        if include_cmin_zero_nine:
-            ax2.legend(loc='lower left', bbox_to_anchor=(0, 1.05))
-        else:
             ax2.legend(loc='lower left', bbox_to_anchor=(0, 1.0),
                        ncol=2)  # loc='upper left', bbox_to_anchor=(1, 1)) , ncol=2
 
-        # -
+            # -
 
-        ax3.plot(dfirt[px1], np.sqrt(dfirt[py1] ** 2 + dfirt[py2] ** 2), '-o', ms=ms, color=clr_i, label=lgnd_i,
-                 zorder=zorder_i)
-        ax3.plot(dfsrt[px1], np.sqrt(dfsrt[py1] ** 2 + dfsrt[py2] ** 2), '-o', ms=ms, color=clr_s, label=lgnd_s,
-                 zorder=zorder_s)
+            ax3.plot(dfirt[px1], np.sqrt(dfirt[py1] ** 2 + dfirt[py2] ** 2), '-o', ms=ms, color=clr_i, label=lgnd_i,
+                     zorder=zorder_i)
 
-        if include_cmin_zero_nine:
-            ax3.plot(dfssrt[px1], np.sqrt(dfssrt[py1] ** 2 + dfssrt[py2] ** 2), '-o', ms=ms, color=clr_ss,
-                     label=lgnd_ss, zorder=zorder_ss)
+            # ax3.set_xlabel(xlbl)
+            # ax3.set_xticks(xticks)
+            ax3.set_ylabel(ylbl_rmse_xy)
+            # ax3.set_ylim(ylim_rmse_xy)
+            # ax3.set_yticks(yticks_rmse_xy)
+            # ax3.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
-        # ax3.set_xlabel(xlbl)
-        # ax3.set_xticks(xticks)
-        ax3.set_ylabel(ylbl_rmse_xy)
-        # ax3.set_ylim(ylim_rmse_xy)
-        # ax3.set_yticks(yticks_rmse_xy)
-        # ax3.legend(loc='upper left', bbox_to_anchor=(1, 1))
+            # -
 
-        # -
+            ax4.plot(dfim[px], dfim[py4], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
 
-        ax4.plot(dfim[px], dfim[py4], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
-        ax4.plot(dfsm[px], dfsm[py4], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
+            ax4.set_xlabel(xlbl)
+            ax4.set_xticks(xticks)
+            ax4.set_ylabel(ylbl_rmse_z)
+            # ax4.set_ylim(ylim_rmse_z)
+            # ax4.set_yticks(yticks_rmse_z)
+            # ax4.legend(loc='upper left')  # , borderpad=0.25, handletextpad=0.6, borderaxespad=0.3, markerscale=0.75)
 
-        if include_cmin_zero_nine:
-            ax4.plot(dfssm[px], dfssm[py4], '-o', ms=ms, color=clr_ss, label=lgnd_ss, zorder=zorder_ss)
+            plt.tight_layout()
+            plt.subplots_adjust(hspace=0.3, wspace=0.3)  # hspace=0.175, wspace=0.25
 
-        ax4.set_xlabel(xlbl)
-        ax4.set_xticks(xticks)
-        ax4.set_ylabel(ylbl_rmse_z)
-        # ax4.set_ylim(ylim_rmse_z)
-        # ax4.set_yticks(yticks_rmse_z)
-        # ax4.legend(loc='upper left')  # , borderpad=0.25, handletextpad=0.6, borderaxespad=0.3, markerscale=0.75)
-
-        plt.tight_layout()
-        plt.subplots_adjust(hspace=0.3, wspace=0.3)  # hspace=0.175, wspace=0.25
-
-        if include_cmin_zero_nine:
-            plt.savefig(join(path_pubfigs, 'compare_local_Cm-phi-rmsexyz_by_z_all_auto-ticks.png'))
-        else:
             plt.savefig(join(path_pubfigs, 'compare_local_Cm-phi-rmsexyz_by_z_alt-legend.png'))
-        plt.show()
-        plt.close()
+            plt.close()
+
+            # ---
 
         # ---
 
-    # ---
+        # plot accuracy of rigid transformations
+        plot_rt_accuracy = False  # True False
+        if plot_rt_accuracy:
+            fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True,
+                                                figsize=(size_x_inches, size_y_inches * 1.5))
 
-    # ----------------------------------------------------------------------------------------------------------------------
-    # 8. Supplementary Information figures
-    # TODO: add plot of histogram of erros
+            ax1.plot(df_icp.z, df_icp.rmse, '-o', label='rmse(R.T.)')
+            ax1.plot(df_icp.z, df_icp.precision, '-o', label='precision(R.T.)')
+            ax1.set_ylabel('Transform')
+            ax1.legend()
 
-    # plot accuracy of rigid transformations
-    plot_rt_accuracy = True  # True False
-    if plot_rt_accuracy:
-        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True,
-                                            figsize=(size_x_inches, size_y_inches * 1.5))
+            ax2.plot(df_icp.z, df_icp.dx, '-o', label='dx')
+            ax2.plot(df_icp.z, df_icp.dy, '-o', label='dy')
+            ax2.plot(df_icp.z, df_icp.dz, '-o', label='|dz|-5')
+            ax2.set_ylabel('displacement (um)')
+            ax2.legend()
 
-        ax1.plot(df_icp.z, df_icp.rmse, '-o', label='rmse(R.T.)')
-        ax1.plot(df_icp.z, df_icp.precision, '-o', label='precision(R.T.)')
-        ax1.set_ylabel('Transform')
-        ax1.legend()
+            ax3.plot(df_icp.z, df_icp.rmse_x, '-o', label='x')
+            ax3.plot(df_icp.z, df_icp.rmse_y, '-o', label='y')
+            ax3.plot(df_icp.z, df_icp.rmse_z, '-o', label='z')
+            ax3.set_ylabel('r.m.s. error (um)')
+            ax3.legend()
+            plt.tight_layout()
+            plt.savefig(join(path_supfigs, 'RT_accuracy.png'))
+            plt.close()
 
-        ax2.plot(df_icp.z, df_icp.dx, '-o', label='dx')
-        ax2.plot(df_icp.z, df_icp.dy, '-o', label='dy')
-        ax2.plot(df_icp.z, df_icp.dz, '-o', label='|dz|-5')
-        ax2.set_ylabel('displacement (um)')
-        ax2.legend()
+    # ------------------------------------------------------------------------------------------------------------------
+    # PLOT SUPPLEMENTARY FIGURES
+    plot_sup_figs = False
+    if plot_sup_figs:
 
-        ax3.plot(df_icp.z, df_icp.rmse_x, '-o', label='x')
-        ax3.plot(df_icp.z, df_icp.rmse_y, '-o', label='y')
-        ax3.plot(df_icp.z, df_icp.rmse_z, '-o', label='z')
-        ax3.set_ylabel('r.m.s. error (um)')
-        ax3.legend()
-        plt.tight_layout()
-        plt.savefig(join(path_supfigs, 'RT_accuracy.png'))
-        plt.show()
+        # path_supfigs
+
+        plot_histogram_errors_z = False
+        if plot_histogram_errors_z:
+            # plot histogram of errors
+            dfi = pd.read_excel(join(base_dir, 'results/fit_plane', 'idpt_error_relative_calib_particle_stack.xlsx'))
+
+            # histogram of z-errors
+            error_col = 'error_rel_p_calib'
+            binwidth_y = 0.1
+            bandwidth_y = 0.075  # None
+            xlim = 3
+            ylim_top = 1000
+            yticks = [0, 500, 1000]
+
+            # iterate
+
+            for estimate_kde in [False, True]:
+                for df, mtd, mcm in zip([dfi], ['idpt'], [0.5]):
+                    y = df[error_col].to_numpy()
+
+                    # plot
+                    fig, ax = plt.subplots(figsize=(size_x_inches / 1.5, size_y_inches / 1.5))
+
+                    ylim_low = (int(np.min(y) / binwidth_y) - 1) * binwidth_y  # + binwidth_y
+                    ylim_high = (int(np.max(y) / binwidth_y) + 1) * binwidth_y - binwidth_y
+                    ybins = np.arange(ylim_low, ylim_high + binwidth_y, binwidth_y)
+                    ny, binsy, patchesy = ax.hist(y, bins=ybins, orientation='vertical', color='gray', zorder=2.5)
+
+                    ax.set_xlabel(r'$\epsilon_{z} \: (\mu m)$')
+                    ax.set_xlim([-xlim, xlim])
+                    ax.set_ylabel('Counts')
+                    ax.set_ylim([0, ylim_top])
+                    ax.set_yticks(yticks)
+
+                    if estimate_kde:
+                        kdex, kdey, bandwidth = fit.fit_kde(y, bandwidth=bandwidth_y)
+                        # pdf, y_grid = kde_scipy(y, y_grid=None, bandwidth=bandwidth)
+
+                        axr = ax.twinx()
+
+                        axr.plot(kdex, kdey, linewidth=0.25, color='r', zorder=2.4)
+                        # axr.plot(y_grid, pdf, linewidth=0.5, linestyle='--', color='b', zorder=2.4)
+
+                        axr.set_ylabel('PDF')
+                        axr.set_ylim(bottom=0)
+                        # axr.set_yticks(yticks)
+                        save_id = 'idpt_cmin{}_histogram_z-errors_kde-bandwidth={}.png'.format(mcm, np.round(bandwidth, 4))
+                    else:
+                        save_id = 'idpt_cmin{}_histogram_z-errors.png'.format(mcm)
+
+                    plt.tight_layout()
+                    plt.savefig(join(path_supfigs, save_id))
+                    plt.close()
+
+        # ---
+
+        # plot x-y scatter of rmse_z per particle
+        plot_histogram_errors_xy = False  # True False
+        if plot_histogram_errors_xy:
+            from sklearn.neighbors import KernelDensity
+            # plot histogram for a single array
+            # plot kernel density estimation
+            def scatter_and_kde_y(y, binwidth_y=1, kde=True, bandwidth_y=0.5, xlbl='residual', ylim_top=525, yticks=[],
+                                  save_path=None):
+
+                fig, ax = plt.subplots(figsize=(size_x_inches / 1.5, size_y_inches / 1.5))
+
+                # y
+                ylim_low = (int(np.min(y) / binwidth_y) - 1) * binwidth_y  # + binwidth_y
+                ylim_high = (int(np.max(y) / binwidth_y) + 1) * binwidth_y - binwidth_y
+                ybins = np.arange(ylim_low, ylim_high + binwidth_y, binwidth_y)
+                ny, binsy, patchesy = ax.hist(y, bins=ybins, orientation='vertical', color='gray', zorder=2.5)
+
+                # kernel density estimation
+                if kde:
+                    ymin, ymax = np.min(y), np.max(y)
+                    y_range = ymax - ymin
+                    y_plot = np.linspace(ymin - y_range / 5, ymax + y_range / 5, 250)
+
+                    y = y[:, np.newaxis]
+                    y_plot = y_plot[:, np.newaxis]
+
+                    kde_y = KernelDensity(kernel="gaussian", bandwidth=bandwidth_y).fit(y)
+                    log_dens_y = kde_y.score_samples(y_plot)
+                    scale_to_max = np.max(ny) / np.max(np.exp(log_dens_y))
+
+                    # p2 = ax.fill_betweenx(y_plot[:, 0], 0, np.exp(log_dens_y) * scale_to_max, fc="None", ec=scired, zorder=2.5)
+                    # p2.set_linewidth(0.5)
+                    ax.plot(y_plot[:, 0], np.exp(log_dens_y) * scale_to_max, linewidth=0.75, linestyle='-',
+                            color=scired)
+
+                ax.set_xlabel(xlbl + r'$(\mu m)$')
+                ax.set_xlim([-3, 3])
+                ax.set_ylabel('Counts')
+                ax.set_ylim([0, ylim_top])
+                ax.set_yticks(yticks)
+                ax.grid(alpha=0.25)
+
+                plt.tight_layout()
+                plt.savefig(save_path)
+                plt.close()
+
+
+            dfi = pd.read_excel(join(base_dir, 'results/rigid_transforms', 'dfBB_icp.xlsx'))
+
+            # plot formatting
+            ylim_top = 1050
+            yticks = [0, 500, 1000]
+
+            # plot histogram
+            err_cols = ['errx', 'erry', 'errz']
+            err_lbls = ['x residual ', 'y residual ', 'z residual ']
+
+            for ycol, xlbl in zip(err_cols, err_lbls):
+                y = dfi[ycol].to_numpy()
+                save_path = join(path_supfigs, 'hist_{}.png'.format(ycol))
+                scatter_and_kde_y(y, binwidth_y=0.1, kde=False, bandwidth_y=0.25,
+                                  xlbl=xlbl, ylim_top=ylim_top, yticks=yticks,
+                                  save_path=save_path)
+
+            # ---
+
+        # ---
