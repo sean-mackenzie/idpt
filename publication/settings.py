@@ -16,9 +16,9 @@ class datasets(object):
 
     def unpack(self):
         if self.dataset == '11.06.21_z-micrometer-v2':
-            base_dir = '/Users/mackenzie/PythonProjects/idpt/publication'
+            # base_dir = join('idpt', 'publication')
             if self.collection_type == 'calibration':
-                image_path = join(base_dir, 'images/calibration/1umSteps')
+                image_path = join('images', 'calibration', '1umSteps')
                 image_file_type = 'tif'
                 image_base_string = 'calib_'
                 calibration_z_step_size = 1
@@ -26,7 +26,7 @@ class datasets(object):
                 baseline_image = 'calib_50.tif'
                 hard_baseline = True
 
-                results_path = join(base_dir, 'results/calib')
+                results_path = join('results', 'calib')
                 save_id_string = 'calib'
                 save_plots = True
 
@@ -48,7 +48,7 @@ class datasets(object):
                 infer_method = None
 
             else:
-                image_path = join(base_dir, 'images/tests/3X_5umSteps')
+                image_path = join('images', 'tests', '3X_5umSteps')
                 image_file_type = 'tif'
                 image_base_string = 'test_'
                 calibration_z_step_size = None
@@ -56,7 +56,7 @@ class datasets(object):
                 baseline_image = 'test_39.tif'
                 hard_baseline = True
 
-                results_path = join(base_dir, 'results/test')
+                results_path = join('results', 'test')
                 save_id_string = 'test'
                 save_plots = True
 
