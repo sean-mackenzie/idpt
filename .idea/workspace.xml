@@ -5,9 +5,31 @@
       <change beforePath="$PROJECT_DIR$/.idea/idpt.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/idpt.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/test/test_test-coords.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/test/test_test-coords.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/test/test_test-coords_pdf.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/test/test_test-coords_pdf.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/publication/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/analyses/rigid_transformations_from_focus.py" beforeDir="false" afterPath="$PROJECT_DIR$/publication/analyses/rigid_transformations_from_focus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/abs-sample-tilt_by_rmsez-fit-IDPT.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/both_fit-respective-plane-xyzc-rmsez_by_z-true.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/both_fit-respective-plane-xyzc-rmsez_by_z-true.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-r_rmse-z.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-r_rmse-z.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-rz_mean-rmse-z.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-rz_mean-rmse-z.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-z_rmse-z.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-z_rmse-z.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin_r-z_rmse-z.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin_r-z_rmse-z.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_mean_rmse-z_by_r.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_mean_rmse-z_by_r.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_mean_rmse-z_by_z.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_mean_rmse-z_by_z.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack_all.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack_all.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack_invalid-only.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack_invalid-only.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/sample-tilt-and-rmsez-by-fit-IDPT-and_by_z-true.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/sample-tilt-by-fit-IDPT_by_z-true.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/scatter-abs-error_rel_p_calib___.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/scatter-error_rel_p_calib___.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/rigid_transforms/dfBB_icp.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/rigid_transforms/dfBB_icp.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/rigid_transforms/df_icp.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/rigid_transforms/df_icp.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/rigid_transforms/dfdz_icp.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/rigid_transforms/dfdz_icp.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/rigid_transforms/icp_mean-rmse.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/rigid_transforms/icp_mean-rmse.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/supfigs/RT_accuracy.png" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/supfigs/RT_accuracy.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/supfigs/idpt_cmin0.5_histogram_z-errors_kde-bandwidth=0.075.png" beforeDir="false" afterPath="$PROJECT_DIR$/publication/results/supfigs/idpt_cmin0.5_histogram_z-errors_kde-bandwidth=0.075.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/test/standard IDPT/test_test-coords.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/test/standard IDPT/test_z-trajectories.png" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,7 +67,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$/publication/generate_results.py" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunManager" selected="Python.generate_results">
+  <component name="RunManager" selected="Python.rigid_transformations_from_focus">
     <configuration name="generate_results" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="idpt" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -114,6 +136,7 @@
       <workItem from="1718067415575" duration="821000" />
       <workItem from="1718164493162" duration="2966000" />
       <workItem from="1718170084843" duration="1896000" />
+      <workItem from="1718174614517" duration="2910000" />
     </task>
     <servers />
   </component>
@@ -134,6 +157,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/idpt$generate_results.coverage" NAME="generate_results Coverage Results" MODIFIED="1718171404739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
-    <SUITE FILE_PATH="coverage/idpt$rigid_transformations_from_focus.coverage" NAME="rigid_transformations_from_focus Coverage Results" MODIFIED="1718067739633" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication/analyses" />
+    <SUITE FILE_PATH="coverage/idpt$rigid_transformations_from_focus.coverage" NAME="rigid_transformations_from_focus Coverage Results" MODIFIED="1718177454708" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication/analyses" />
   </component>
 </project>

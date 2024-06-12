@@ -442,7 +442,7 @@ def regularize_coordinates_between_image_sets(df, r0):
     return df
 
 
-def read_coords_true_in_plane_positions(path_coords, length_per_pixel):
+def read_coords_true_in_plane_positions(path_coords):
     dfxyzf = pd.read_excel(path_coords)
     dfxyzf['z'] = 0
     dfxyzf['gauss_rc'] = np.sqrt(dfxyzf['gauss_xc'] ** 2 + dfxyzf['gauss_yc'] ** 2)
@@ -470,14 +470,26 @@ if __name__ == '__main__':
     padding = 5  # units: pixels
     img_xc, img_yc = num_pixels / 2 + padding, num_pixels / 2 + padding
 
+    """
+    In order to run this script w/o modification after downloading from GitHub, 
+    the file paths (i.e., to test coords and xy_at_zf) will need to be
+    passed programmatically. One option is: cwd = os.getcwd()
+    """
+    #TODO:
+    # 1. remove fitting 2D Gaussians to particle images (pdf)
+    # 2. fix file paths. 
+
     # C. directories and file paths
     base_dir = '/Users/mackenzie/PythonProjects/idpt/publication'
     # datasets
     path_test_coords = join(base_dir, 'results/test/test_test-coords.xlsx')
     path_xy_at_zf = join(base_dir, 'analyses/ref/true_positions_fiji.xlsx')
     # results
+    path_fit_plane = join(base_dir, 'results/fit_plane')
+    path_rt = join(base_dir, 'results/rigid_transforms')
     path_pubfigs = join(base_dir, 'results/pubfigs')
     path_supfigs = join(base_dir, 'results/supfigs')
+    [os.makedirs(pth) for pth in [path_fit_plane, path_rt, path_pubfigs, path_supfigs] if not os.path.exists(pth)]
 
     # ---
 
@@ -502,14 +514,17 @@ if __name__ == '__main__':
     if fit_plane_analysis:
 
         # 0. setup
-        path_results = join(base_dir, 'results/fit_plane')
+        path_results = path_fit_plane
+
+        # Must be TRUE in order to export rmse-z_by_z.xlsx for pubfig
+        analyze_rmse_relative_calib_post_tilt_corr = True  # False True
 
         # specific settings (that should get deleted after confirming they aren't needed)
         correct_tilt = True  # False True
         correct_spct_tilt_using_idpt_fit_plane = True
         assign_z_true_to_fit_plane_xyzc = True
         # idpt
-        i_test_name = 'test_coords_particle_image_stats_tm16_cm19_aligned'  # _dzf-post-processed'
+        # NOT USED: i_test_name = 'test_coords_particle_image_stats_tm16_cm19_aligned'  # _dzf-post-processed'
         i_calib_id_from_testset = 54  # 42
         i_calib_id_from_calibset = 54  # 42
         # step 0. filter dft such that it only includes particles that could reasonably be on the tilt surface
@@ -588,15 +603,18 @@ if __name__ == '__main__':
         dfis['abs_error_rel_p_calib'] = dfis['error_rel_p_calib'].abs()
 
         # Export 1/3: all measurements (valid + invalid)
-        dfis.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack_all.xlsx'))
+        dfis.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack_all.xlsx'),
+                      index=False)
 
         # Export 2/3: invalid measurements only
         dfis_invalid = dfis[dfis['abs_error_rel_p_calib'] > out_of_plane_threshold]
-        dfis_invalid.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack_invalid-only.xlsx'))
+        dfis_invalid.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack_invalid-only.xlsx'),
+                              index=False)
 
         # Export 3/3: valid measurements only
         dfis = dfis[dfis['abs_error_rel_p_calib'] < out_of_plane_threshold]
-        dfis.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack.xlsx'))
+        dfis.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack.xlsx'),
+                      index=False)
 
         # ---
 
@@ -703,7 +721,6 @@ if __name__ == '__main__':
             plt.savefig(join(path_results, 'abs-sample-tilt_by_rmsez-fit-IDPT.png'))
             plt.close()
 
-        analyze_rmse_relative_calib_post_tilt_corr = False  # False True
         if analyze_rmse_relative_calib_post_tilt_corr:
             plot_bin_z = True
             plot_bin_r = True
@@ -1081,31 +1098,25 @@ if __name__ == '__main__':
 
             # -------------
 
-
     # ------------------------------------------------------------------------------------------------------------------
     # EVALUATE X_TRUE, Y_TRUE RELATIVE TO RIGID TRANSFORMATIONS FROM FOCUS
 
-    rt_from_f = False
+    rt_from_f = True
     if rt_from_f:
-        dfis = pd.read_excel(join(base_dir, 'results/fit_plane', 'idpt_error_relative_calib_particle_stack.xlsx'))
+
+        plot_pubfigs = True
+        plot_rt_accuracy = True  # True False
 
         # 0. setup
-        path_results = join(base_dir, 'results/rigid_transforms')
+        path_results = path_rt
 
         # 1. read test coords
-        # NOTE: these are the WRONG TEST COORDS! This should read the output of IDPT-fitted plane corrected coords!
-        # dft = read_coords_idpt(path_test_coords)
-        dft = dfis.copy()
+        dft = pd.read_excel(join(base_dir, 'results/fit_plane', 'idpt_error_relative_calib_particle_stack.xlsx'))
 
-        # 2. pre-process coordinates
-        # NOTE: not necessary here since already done when fitting IDPT plane
-        # dft = regularize_coordinates_between_image_sets(dft, r0=(img_xc, img_yc), length_per_pixel=microns_per_pixel)
+        # 2. read coords: "true" in-plane positions of particles at focus (measured using ImageJ)
+        dfxyzf = read_coords_true_in_plane_positions(path_xy_at_zf)
 
-        # 3. read coords: "true" in-plane positions of particles at focus (measured using ImageJ)
-        dfxyzf = read_coords_true_in_plane_positions(path_xy_at_zf, length_per_pixel=microns_per_pixel)
-
-        # 4. convert x, y, r coordinates from units pixels to microns
-        # TODO: convert x,y,r to microns
+        # 3. convert x, y, r coordinates from units pixels to microns
         for pix2microns in ['x', 'y', 'r']:
             dft[pix2microns] = dft[pix2microns] * microns_per_pixel
             dfxyzf[pix2microns] = dfxyzf[pix2microns] * microns_per_pixel
@@ -1128,7 +1139,6 @@ if __name__ == '__main__':
         # --------------------------------------------------------------------------------------------------------------
         # 7. Publication figures
 
-        plot_pubfigs = False
         if plot_pubfigs:
 
             dfirt = dfdz_icp
@@ -1258,7 +1268,6 @@ if __name__ == '__main__':
         # ---
 
         # plot accuracy of rigid transformations
-        plot_rt_accuracy = False  # True False
         if plot_rt_accuracy:
             fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True,
                                                 figsize=(size_x_inches, size_y_inches * 1.5))
@@ -1285,12 +1294,11 @@ if __name__ == '__main__':
 
     # ------------------------------------------------------------------------------------------------------------------
     # PLOT SUPPLEMENTARY FIGURES
-    plot_sup_figs = False
+    plot_sup_figs = True
     if plot_sup_figs:
+        plot_histogram_errors_z = True
+        plot_histogram_errors_xy = True  # True False
 
-        # path_supfigs
-
-        plot_histogram_errors_z = False
         if plot_histogram_errors_z:
             # plot histogram of errors
             dfi = pd.read_excel(join(base_dir, 'results/fit_plane', 'idpt_error_relative_calib_particle_stack.xlsx'))
@@ -1346,7 +1354,6 @@ if __name__ == '__main__':
         # ---
 
         # plot x-y scatter of rmse_z per particle
-        plot_histogram_errors_xy = False  # True False
         if plot_histogram_errors_xy:
             from sklearn.neighbors import KernelDensity
             # plot histogram for a single array
