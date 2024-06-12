@@ -181,25 +181,6 @@ class IdptImageCollection(object):
             else:
                 raise ValueError("Collecting multiple subsets is not implemented at the moment.")
 
-    def find_files_old(self, exclude=[]):
-        all_files = listdir(self.image_path)
-        number_of_files = 0
-        save_files = []
-        for file in all_files:
-            if file.endswith(self.image_file_type):
-                if file in exclude:
-                    number_of_files += 1
-                    continue
-                save_files.append(file)
-                number_of_files += 1
-
-        save_files = sorted(save_files,
-                            key=lambda filename: float(filename.split(self.image_base_string)[-1].split('.')[0]))
-        logger.warning(
-            "Found {} files with filetype {} in folder {}".format(len(save_files), self.image_file_type,
-                                                                  self.image_path))
-        self.files = save_files
-
     def find_files(self, subset):
         files = [f for f in listdir(self.image_path) if f.endswith(self.image_file_type)]
 
@@ -470,5 +451,18 @@ class IdptImageCollection(object):
         coords = pd.DataFrame(np.vstack(coords),
                               columns=['frame', 'id', 'cm_discrete', 'cm_sub', 'z_sub', 'x_sub', 'y_sub',
                                        'z_discrete', 'x_discrete', 'y_discrete'])
+        coords = coords.sort_values(['frame', 'id'])
+        return coords
+
+    def package_particle_positions_pdf(self):
+        coords = []
+        for image in self.images.values():
+            coords.append(image.get_coords_pdf())
+        coords = pd.DataFrame(np.vstack(coords),
+                              columns=['frame', 'id', 'cm_discrete', 'cm_sub', 'z_sub', 'x_sub', 'y_sub',
+                                       'z_discrete', 'x_discrete', 'y_discrete',
+                                       'pdf_A', 'pdf_yc', 'pdf_xc', 'pdf_sigma_y', 'pdf_sigma_x',
+                                       'pdf_rho', 'pdf_bkg', 'pdf_rmse', 'pdf_r_squared',
+                                       ])
         coords = coords.sort_values(['frame', 'id'])
         return coords

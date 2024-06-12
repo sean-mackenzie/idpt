@@ -3,6 +3,7 @@ from .IdptCalibrationStack import IdptCalibrationStack
 from .IdptImageCollection import IdptImageCollection
 from os.path import join
 
+
 class IdptProcess(object):
     def __init__(self, calib_settings, test_settings, name_to_z=None, calib_col=None, calib_set=None, test_col=None):
         self.calib_settings = calib_settings
@@ -76,6 +77,10 @@ class IdptProcess(object):
         coords = self.test_col.package_particle_positions()
         coords.to_excel(join(self.test_settings.outputs.results_path, self.test_settings.outputs.save_id_string +
                              '_test-coords.xlsx'), index=False)
+
+        coords_pdf = self.test_col.package_particle_positions_pdf()
+        coords_pdf.to_excel(join(self.test_settings.outputs.results_path, self.test_settings.outputs.save_id_string +
+                                 '_test-coords_pdf.xlsx'), index=False)
 
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(10, 10))

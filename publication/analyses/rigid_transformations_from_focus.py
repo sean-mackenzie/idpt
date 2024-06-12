@@ -498,7 +498,7 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------------------------------------------------------
     # EVALUATE Z_TRUE RELATIVE TO IDPT FITTED PLANE
 
-    fit_plane_analysis = False
+    fit_plane_analysis = True
     if fit_plane_analysis:
 
         # 0. setup
@@ -519,7 +519,6 @@ if __name__ == '__main__':
         # -
 
         # 1. read test coords
-        # TODO: NOTE: these are the WRONG TEST COORDS! This should read the output of IDPT-fitted plane corrected coords!
         dft = read_coords_idpt(path_test_coords)
 
         # 2. pre-process coordinates
@@ -549,11 +548,6 @@ if __name__ == '__main__':
             # --- FUNCTION: correct tilt
             # step 0. filter dft such that it only includes particles that could reasonably be on the tilt surface
             dfit_within_tilt = dfit[np.abs(dfit['z'] - z_nominal) < reasonable_z_tilt_limit]
-
-            # step 0.5. check if calibration particle is in this new group
-            # TODO: is this ever actually used? Need to verify.
-            if not i_calib_id_from_testset in dfit_within_tilt.id.unique():
-                z_calib = -3.6
 
             # step 1. fit plane to particle positions
             i_dict_fit_plane = fit.fit_in_focus_plane(df=dfit_within_tilt,  # note: x,y units are pixels at this point
@@ -587,12 +581,9 @@ if __name__ == '__main__':
             dfit['error_rel_p_calib'] = dfit['z'] - i_z_calib
 
             dfis.append(dfit)
-
-        # -
-
         dfis = pd.concat(dfis)
 
-        #TODO: export: (1) all measurements (valid & invalid), (2) invalid only, (3) valid only
+        # export: (1) all measurements (valid & invalid), (2) invalid only, (3) valid only
         # make absolute error
         dfis['abs_error_rel_p_calib'] = dfis['error_rel_p_calib'].abs()
 
@@ -606,8 +597,6 @@ if __name__ == '__main__':
         # Export 3/3: valid measurements only
         dfis = dfis[dfis['abs_error_rel_p_calib'] < out_of_plane_threshold]
         dfis.to_excel(join(path_results, 'idpt_error_relative_calib_particle_stack.xlsx'))
-
-
 
         # ---
 

@@ -127,7 +127,7 @@ class IdptImageInference(object):
             nneigh = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(baseline_locations.values)
 
         for image in self.collection.images.values():
-            logger.info("Infering image {}".format(image.filename))
+            logger.info("Inferring image {}".format(image.filename))
             for particle in image.particles:
                 if use_stack is not None:
                     if use_stack == 'nearest':

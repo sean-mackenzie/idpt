@@ -216,7 +216,6 @@ class IdptImage(object):
         collection.set_baseline_all_contour_coords(passing_contours)
 
         logger.info("Identified {} particles in baseline image {}".format(len(passing_labels), self.filename))
-        print(rpd)
 
     def extract_particle_sub_images(self, collection, padding, template_use_raw):
 
@@ -246,132 +245,6 @@ class IdptImage(object):
             self._add_particle(pid, contour_coords, bbox, particle_mask,
                                location=(cX, cY), template_use_raw=template_use_raw)
 
-    """
-    def identify_particles(self, collection, particle_id_image, thresh_specs,
-                           min_size, max_size, padding, template_use_raw):
-
-        if collection.baseline_regions is not None:
-            particle_mask = collection.baseline_particle_mask
-            regions = collection.baseline_regions
-            all_contour_coords = collection.baseline_all_contour_coords
-            regionprops_data = collection.baseline_regionprops_data
-        else:
-            show_threshold = False
-            # b/c static templates
-            particle_mask = apply_threshold(img=particle_id_image,
-                                            parameter=thresh_specs,
-                                            show_threshold=show_threshold).astype(np.uint16)
-
-            # identify particles
-            label_image, regions, all_contour_coords = identify_contours(particle_mask, self.filtered)
-
-            # store the regionprops table
-            regionprops_data = regionprops_table(label_image, self.filtered,
-                                                 properties=['label', 'area', 'bbox', 'centroid', 'weighted_centroid',
-                                                             'local_centroid',
-                                                             'weighted_local_centroid', 'max_intensity',
-                                                             'mean_intensity',
-                                                             'minor_axis_length', 'major_axis_length'])
-            regionprops_data = pd.DataFrame(regionprops_data)
-            self.regionprops_table = regionprops_data
-
-            # set collection baseline regions
-            collection.set_baseline_particle_mask(particle_mask)
-            collection.set_baseline_regions(regions)
-            collection.set_baseline_all_contour_coords(all_contour_coords)
-            collection.set_baseline_regionprops_data(regionprops_data)
-
-            # ---
-
-        # filters regions (contours)
-        skipped_contours = []
-        passing_ids = []
-        contour_areas = []
-        id_ = 0
-
-        # ---
-
-        # Sort contours and bboxes by x-coordinate:
-        for region, contour_coords in sorted(zip(regions, all_contour_coords), key=lambda x: x[0].centroid[1]):
-
-            # filter on area
-            area = region.area
-            if area < min_size or area > max_size:
-                if self.frame == 0:
-                    logger.warning(
-                        "Region skipped b/c area {} < {} | area {} > {}".format(area, min_size, area, max_size))
-                skipped_contours.append(region.label)
-                continue
-
-            aspect_ratio_threshold = 3
-            if min_size > 5:
-                aspect_ratio = region.major_axis_length / region.minor_axis_length
-                if aspect_ratio > aspect_ratio_threshold:
-                    if self.frame == 0:
-                        logger.warning(
-                            "Region skipped b/c aspect ratio = {} > {}.".format(aspect_ratio, aspect_ratio_threshold))
-                    skipped_contours.append(region.label)
-                    continue
-
-            # adjust the bounding box (bbox) to work with GdpytParticle (note: x0, y0, w0, h0 = self.bbox)
-            min_row, min_col, max_row, max_col = region.bbox
-            bbox = (min_col, min_row, max_col - min_col, max_row - min_row)
-
-            cX = int(
-                np.round(regionprops_data[regionprops_data['label'] == region.label]['weighted_centroid-1'].item(), 0))
-            cY = int(
-                np.round(regionprops_data[regionprops_data['label'] == region.label]['weighted_centroid-0'].item(), 0))
-
-            # pad and center template
-            bbox, bbox_center = pad_and_center_region(cX, cY, bbox, padding=padding)
-
-            # discard contours that are too close to the
-            # image borders to include the desired padding
-            filter_borders = True
-            if filter_borders:
-                if bbox[0] - padding * 0.1 < 1 or bbox[1] - padding * 0.1 < 1:
-                    # NOTE: the constant 0.1 used to be 0.5
-                    skipped_contours.append(region.label)
-                    if self.frame == 0:
-                        print("FIRST FILTER: Skipped because template + padding near the image borders")
-                    continue
-                elif bbox[0] + bbox[2] + padding * 0.1 >= self.shape[1] or bbox[1] + bbox[3] + padding * 0.1 >= \
-                        self.shape[0]:
-                    # NOTE: the constant 0.1 used to be 0.5
-                    skipped_contours.append(region.label)
-                    if self.frame == 0:
-                        print("SECOND FILTER: Skipped because template + padding near the image borders")
-                    continue
-
-            # Add data for contour inspection
-            contour_areas.append(area)
-            passing_ids.append(id_)
-
-            # Add particle
-            self._add_particle(id_, contour_coords, bbox, particle_mask,
-                               location=(cX, cY), template_use_raw=template_use_raw)
-            id_ = id_ + 1
-
-        # Calculate contour statistics
-        if len(contour_areas) > 0:
-            min_contour_area = np.min(contour_areas)
-            max_contour_area = np.max(contour_areas)
-            mean_contour_area = np.mean(contour_areas)
-            std_contour_area = np.round(np.std(contour_areas), 1)
-            if self.frame == 0:
-                if min_contour_area < min_size * 1.5:
-                    print("Min. contour area [input, measured] = [{}, {}]".format(min_size, min_contour_area))
-                    print("Mean contour area: {} +/- {}".format(mean_contour_area, std_contour_area * 2))
-                if max_contour_area > max_size * 0.75:
-                    print("Max. contour area [input, measured] = [{}, {}]".format(max_size, max_contour_area))
-                    print("Mean contour area: {} +/- {}".format(mean_contour_area, std_contour_area * 2))
-
-            # set image attributes
-            self._masked = particle_mask
-            self._mean_contour_area = mean_contour_area
-            self._std_contour_area = std_contour_area
-    """
-
     def set_z(self, z):
         assert isinstance(z, float)
         # set the z-value of the image
@@ -386,6 +259,12 @@ class IdptImage(object):
         coords = []
         for particle in self.particles:
             coords.append(particle.coords)
+        return coords
+
+    def get_coords_pdf(self):
+        coords = []
+        for particle in self.particles:
+            coords.append(particle.coords_pdf)
         return coords
 
     @property

@@ -1,5 +1,6 @@
 import numpy as np
 import logging
+from idpt.utils import subresolution
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,19 @@ class IdptParticle(object):
 
         # set the _template, _location_on_template, and _template_contour attributes.
         self._create_template(bbox=bbox)
+
+        # fit bivariate Gaussian to particle image
+        self.pdf_A = None
+        self.pdf_yc = None
+        self.pdf_xc = None
+        self.pdf_sigma_y = None
+        self.pdf_sigma_x = None
+        self.pdf_rho = None
+        self.pdf_bkg = None
+        self.pdf_rmse = None
+        self.pdf_r_squared = None
+
+        self._fit_2d_gaussian_on_particle_image(rotate_degrees=45)
 
     def _create_template(self, bbox=None):
         image = self._image
@@ -128,6 +142,37 @@ class IdptParticle(object):
 
         return self.template
 
+    def _fit_2d_gaussian_on_particle_image(self, rotate_degrees=45):
+
+        dia_x_pdf, dia_y_pdf, A_pdf, yc_pdf, xc_pdf, sigmay_pdf, sigmax_pdf, rho, bkg = subresolution.fit_gaussian_calc_diameter(
+            self._template,
+            normalize=False,
+            rotate_degrees=rotate_degrees,
+            bivariate_pdf=True,
+        )
+
+        if rho is not None:
+            self.pdf_A = A_pdf
+            self.pdf_yc = yc_pdf + self.bbox[1]
+            self.pdf_xc = xc_pdf + self.bbox[0]
+            self.pdf_sigma_y = sigmay_pdf
+            self.pdf_sigma_x = sigmax_pdf
+            self.pdf_rho = rho
+
+            # NOTE: the below is new (as of 10/22/2022)
+            XYZ, fZ, rmse, r_squared, residuals = subresolution.evaluate_fit_2d_gaussian_on_image(img=self._template,
+                                                                                                  fit_func='bivariate_pdf',
+                                                                                                  popt=[A_pdf,
+                                                                                                        xc_pdf, yc_pdf,
+                                                                                                        sigmax_pdf,
+                                                                                                        sigmay_pdf,
+                                                                                                        rho,
+                                                                                                        bkg],
+                                                                                                  )
+            self.pdf_bkg = bkg
+            self.pdf_rmse = rmse
+            self.pdf_r_squared = r_squared
+
     def add_particle_in_image(self, img_id):
         self._in_images = img_id
 
@@ -210,6 +255,21 @@ class IdptParticle(object):
     def coords(self):
         return [self.frame, self.id, self.cm_discrete, self.cm_sub, self.z_sub, self.x_sub, self.y_sub,
                 self.z_discrete, self.x_discrete, self.y_discrete]
+
+    @property
+    def coords_pdf(self):
+        return [self.frame, self.id, self.cm_discrete, self.cm_sub, self.z_sub, self.x_sub, self.y_sub,
+                self.z_discrete, self.x_discrete, self.y_discrete,
+                self.pdf_A,
+                self.pdf_yc,
+                self.pdf_xc,
+                self.pdf_sigma_y,
+                self.pdf_sigma_x,
+                self.pdf_rho,
+                self.pdf_bkg,
+                self.pdf_rmse,
+                self.pdf_r_squared,
+                ]
 
     @property
     def calib_coords(self):
