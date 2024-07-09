@@ -510,7 +510,7 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------------------------------------------------------
     # EVALUATE Z_TRUE RELATIVE TO IDPT FITTED PLANE
 
-    fit_plane_analysis = True
+    fit_plane_analysis = False
     if fit_plane_analysis:
 
         # 0. setup
