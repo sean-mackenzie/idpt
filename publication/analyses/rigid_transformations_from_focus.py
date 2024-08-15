@@ -445,12 +445,7 @@ def regularize_coordinates_between_image_sets(df, r0):
 def read_coords_true_in_plane_positions(path_coords):
     dfxyzf = pd.read_excel(path_coords)
     dfxyzf['z'] = 0
-    dfxyzf['gauss_rc'] = np.sqrt(dfxyzf['gauss_xc'] ** 2 + dfxyzf['gauss_yc'] ** 2)
-
-    dfxyzf['x'] = dfxyzf['gauss_xc']
-    dfxyzf['y'] = dfxyzf['gauss_yc']
-    dfxyzf['r'] = dfxyzf['gauss_rc']
-
+    dfxyzf['r'] = np.sqrt(dfxyzf['x'] ** 2 + dfxyzf['y'] ** 2)
     return dfxyzf
 
 
@@ -491,6 +486,12 @@ if __name__ == '__main__':
     path_supfigs = join(base_dir, 'results/supfigs')
     [os.makedirs(pth) for pth in [path_fit_plane, path_rt, path_pubfigs, path_supfigs] if not os.path.exists(pth)]
 
+
+    # B. GDPT processing details
+    #padding = 0  # units: pixels
+    #img_xc, img_yc = num_pixels / 2 + padding, num_pixels / 2 + padding
+    #path_test_coords = join(base_dir, 'results/test/gdpt_test-coords.xlsx')
+
     # ---
 
     # 0. setup
@@ -525,8 +526,8 @@ if __name__ == '__main__':
         assign_z_true_to_fit_plane_xyzc = True
         # idpt
         # NOT USED: i_test_name = 'test_coords_particle_image_stats_tm16_cm19_aligned'  # _dzf-post-processed'
-        i_calib_id_from_testset = 54  # 42
-        i_calib_id_from_calibset = 54  # 42
+        # NOT USED: i_calib_id_from_testset = 54  # 42
+        # NOT USED: i_calib_id_from_calibset = 54  # 42
         # step 0. filter dft such that it only includes particles that could reasonably be on the tilt surface
         reasonable_z_tilt_limit = 3.25
         reasonable_r_tilt_limit = int(np.round(250 / microns_per_pixel))  # convert units microns to pixels
@@ -539,6 +540,23 @@ if __name__ == '__main__':
         # 2. pre-process coordinates
         dft = regularize_coordinates_between_image_sets(dft, r0=(img_xc, img_yc))
 
+        """fig, ax = plt.subplots(figsize=(10, 10))
+        ax.scatter(dft['z_nominal'], dft['z'], s=2)
+        ax.set_xlabel('z_nominal')
+        ax.set_ylabel('z')
+        spth = '/Users/mackenzie/PythonProjects/idpt/publication/results'
+        plt.savefig(join(spth, 'z_by_z-nominal.png'))
+
+        frs = dft['frame'].unique()
+        fig, ax = plt.subplots(figsize=(10, 10))
+        for fr in frs:
+            dftr = dft[dft['frame']==fr]
+            ax.scatter(dftr['z_nominal'], dftr['z'], s=1)
+        ax.set_xlabel('z_nominal')
+        ax.set_ylabel('z')
+        spth = '/Users/mackenzie/PythonProjects/idpt/publication/results'
+        plt.savefig(join(spth, 'z_by_z-nominal_by-frame.png'))
+        # raise ValueError()"""
         # ---
 
         # 4. FUNCTION: fit plane at each z-position
@@ -550,6 +568,7 @@ if __name__ == '__main__':
         dfis = []
         i_fit_plane_img_xyzc = []
         i_fit_plane_rmsez = []
+        # z_nominals_gdpt = []
 
         # iterate through z-positions
         for z_nominal in z_nominals:
@@ -563,6 +582,11 @@ if __name__ == '__main__':
             # --- FUNCTION: correct tilt
             # step 0. filter dft such that it only includes particles that could reasonably be on the tilt surface
             dfit_within_tilt = dfit[np.abs(dfit['z'] - z_nominal) < reasonable_z_tilt_limit]
+
+            # GDPT ONLY
+            #if len(dfit_within_tilt) < 5:
+            #    continue
+            #z_nominals_gdpt.append(z_nominal)
 
             # step 1. fit plane to particle positions
             i_dict_fit_plane = fit.fit_in_focus_plane(df=dfit_within_tilt,  # note: x,y units are pixels at this point
@@ -618,7 +642,7 @@ if __name__ == '__main__':
 
         # ---
 
-        plot_fit_plane = False
+        plot_fit_plane = True
         if plot_fit_plane:
 
             # analyze fit plane xyzc and rmse-z
