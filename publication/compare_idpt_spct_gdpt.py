@@ -219,28 +219,29 @@ def align_datasets(dict_data, dict_inputs, dict_paths, dict_plots, make_xy_units
         clrs = ['k', sciblue, scigreen, sciorange]
 
         # plot x-y
-        fig, ax = plt.subplots(figsize=(size_x_inches * 2, size_y_inches * 2))
+        fig, ax = plt.subplots(figsize=(size_x_inches * 1.5, size_y_inches * 1.5))
         for i, df in enumerate(dfs):
             if not lbls[i] == 'FIJI':
                 df = df[df['frame'] == baseline_frame]
             ax.scatter(df['x'], df['y'], s=sizes[i], marker=markers[i], color=clrs[i], label=lbls[i])
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
+        ax.set_xlabel(r'$x \: (\mu m)$')
+        ax.set_ylabel(r'$y \: (\mu m)$')
         ax.legend(fontsize='small')
         plt.savefig(join(path_dataset_alignment, 'verify_in-plane_positions.png'))
         plt.close()
 
         # plot z
-        fig, axes = plt.subplots(nrows=3, sharex=True, figsize=(size_x_inches * 1.5, size_y_inches * 2.5))
+        fig, axes = plt.subplots(nrows=3, sharex=True, figsize=(size_x_inches * 1.5, size_y_inches * 2))
         for i, df in enumerate(dfs):
             if lbls[i] == 'FIJI':
                 continue
             axes[i - 1].scatter(df['z_nominal'], df['z'], s=1, marker=markers[i], color=clrs[i], label=lbls[i])
-            axes[i - 1].set_ylabel('z (um)')
-            axes[i - 1].legend(fontsize='small', loc='center right')
+            axes[i - 1].set_ylabel(r"$z' \: (\mu m)$")
+            axes[i - 1].legend(loc='upper left', bbox_to_anchor=(1, 1))
             axes[i - 1].grid(alpha=0.125)
-
-        axes[-1].set_xlabel('z_nominal (um)')
+        axes[-1].set_xlabel(r'$z_{nominal} \: (\mu m)$')
+        plt.tight_layout()
+        plt.subplots_adjust(hspace=0.5, wspace=0.05)
         plt.savefig(join(path_dataset_alignment, 'compare_out-of-plane_positions.png'))
         plt.close()
 
@@ -292,7 +293,7 @@ def package_plane_corrected_dataframe(method, list_of_dataframes, out_of_plane_t
     return df, df_all
 
 
-def bin_by_z_fp(df, z_bins, true_num_particles_per_z, true_total_num, path_results, method):
+def bin_by_z_fp(df, z_bins, true_num_particles_per_z, true_total_num, path_results, method, return_global):
     column_to_bin = 'z_nominal'
     column_to_count = 'id'
     bins = z_bins
@@ -342,7 +343,10 @@ def bin_by_z_fp(df, z_bins, true_num_particles_per_z, true_total_num, path_resul
     # export
     dfm_global.to_excel(join(path_results, '{}_mean_rmse-z_by_z.xlsx'.format(method)))
 
-    return dfm
+    if return_global:
+        return dfm, dfm_global
+    else:
+        return dfm
 
 
 def bin_by_r_fp(df, r_bins, path_results, method):
@@ -532,9 +536,6 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
                       })
     dict_data.update(dict_corr)
 
-    # evaluate rmse
-    evaluate_rmse_post_tilt_corr(dict_data['dataset_rmse'], dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units)
-
     # --- generate plots to evaluate accuracy of plane fits
 
     if dict_plots['fit_plane']['z_corr_valid']:
@@ -571,8 +572,8 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
             ax1.set_ylabel(r'$z \: (\mu m)$')
             ax1.legend(loc='lower left', bbox_to_anchor=(0, 1.0), ncol=4, fontsize='x-small',
                        markerscale=2, borderpad=0.2, handletextpad=0.3, columnspacing=1)
-            ax1.set_xlabel(r'$X$' + ' (pixels)')
-            ax2.set_xlabel(r'$Y$' + ' (pixels)')
+            ax1.set_xlabel(r'$x \: (\mu m)$')
+            ax2.set_xlabel(r'$y \: (\mu m)$')
             plt.tight_layout()
             plt.savefig(
                 join(path_plane_by_z_1ax,
@@ -628,8 +629,8 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
             ax1.set_ylabel(r'$z \: (\mu m)$')
             ax1.legend(loc='lower left', bbox_to_anchor=(0, 1.0), ncol=4, fontsize='x-small',
                        markerscale=2, borderpad=0.2, handletextpad=0.3, columnspacing=1)
-            ax1.set_xlabel(r'$X$' + ' (pixels)')
-            ax2.set_xlabel(r'$Y$' + ' (pixels)')
+            ax1.set_xlabel(r'$x \: (\mu m)$')
+            ax2.set_xlabel(r'$y \: (\mu m)$')
             plt.tight_layout()
             plt.savefig(
                 join(path_plane_by_z_1ax,
@@ -653,7 +654,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
                 ax.set_ylabel(r'$z \: (\mu m)$')
                 ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize='small',
                           markerscale=2, borderpad=0.1, handletextpad=0.15, columnspacing=1)
-            axes[-1].set_xlabel(r'$X \: (pix)$')
+            axes[-1].set_xlabel(r'$x \: (\mu m)$')
             plt.tight_layout()
             plt.savefig(
                 join(path_plane_by_z_3ax,
@@ -702,8 +703,8 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
             ax1.set_ylabel(r'$z \: (\mu m)$')
             ax1.legend(loc='lower left', bbox_to_anchor=(0, 1.0), ncol=4, fontsize='x-small',
                        markerscale=2, borderpad=0.2, handletextpad=0.3, columnspacing=1)
-            ax1.set_xlabel(r'$X$' + ' (pixels)')
-            ax2.set_xlabel(r'$Y$' + ' (pixels)')
+            ax1.set_xlabel(r'$x \: (\mu m)$')
+            ax2.set_xlabel(r'$y \: (\mu m)$')
             plt.tight_layout()
             plt.savefig(join(path_plane_by_z_1ax,
                              'scatter-1ax_raw-z_by_z-nominal={}.png'.format(np.round(z_nominal, 2))))
@@ -716,7 +717,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
                 ax.set_ylabel(r'$z \: (\mu m)$')
                 ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize='small',
                           markerscale=2, borderpad=0.2, handletextpad=0.3, columnspacing=1)
-            axes[-1].set_xlabel(r'$X \: (pix)$')
+            axes[-1].set_xlabel(r'$x \: (\mu m)$')
             plt.tight_layout()
             plt.savefig(join(path_plane_by_z_3ax,
                              'scatter-3ax_raw-z_by_z-nominal={}.png'.format(np.round(z_nominal, 2))))
@@ -840,7 +841,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
     return dict_data
 
 
-def evaluate_rmse_post_tilt_corr(dataset, dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
+def fit_rigid_transformations(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
     if xy_units == 'microns':
         microns_per_pixel = 1
     elif xy_units == 'pixels':
@@ -848,10 +849,119 @@ def evaluate_rmse_post_tilt_corr(dataset, dict_data, dict_inputs, dict_filters, 
     else:
         raise ValueError("xy_units must be: ['microns', 'pixels'].")
 
-    # dataset = 'corrected'
-    dfi = dict_data[dataset]['IDPT']
-    dfs = dict_data[dataset]['SPCT']
-    dfg = dict_data[dataset]['GDPT']
+    path_results = dict_paths['rigid_transformations']
+    make_dir(path=path_results)
+
+    path_outliers = dict_paths['outliers']
+    make_dir(path=path_outliers)
+
+    if dict_data['dataset_rigid_transformations'] == 'aligned':
+        df = dict_data['aligned'][method.upper()]
+        # filter cm
+        min_cm = dict_filters['min_cm']
+        df = filter_cm(dfs=[df], labels=[method], cmin=min_cm, path_results=path_outliers)
+        df = df[0]
+    elif dict_data['dataset_rigid_transformations'].startswith('corrected'):
+        if dict_data['dataset_rigid_transformations'] == 'corrected':
+            path_ = join(dict_paths['fit_plane'], '{}_error_relative_plane.xlsx'.format(method))
+        elif dict_data['dataset_rigid_transformations'] == 'corrected_all':
+            path_ = join(dict_paths['fit_plane'], '{}_error_relative_plane_all.xlsx'.format(method))
+        else:
+            raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
+        df = pd.read_excel(path_)
+    else:
+        raise ValueError("Dataset not understood. Options are: ['aligned', 'corrected', 'corrected_all']")
+
+    in_plane_threshold = dict_filters['in_plane_threshold']
+    min_counts_icp = dict_filters['min_counts_icp']
+
+    # read coords: "true" in-plane positions of particles at focus (measured using ImageJ)
+    dfxyzf = dict_data['aligned']['TRUE'].copy()
+
+    # 3. convert x, y, r coordinates from units pixels to microns
+    for pix2microns in ['x', 'y', 'r']:
+        df[pix2microns] = df[pix2microns] * microns_per_pixel
+        dfxyzf[pix2microns] = dfxyzf[pix2microns] * microns_per_pixel
+
+    # 5. rigid transformations from focus using ICP
+    dfBB_icp, df_icp, df_outliers = rigid_transforms_from_focus(df, dfxyzf, min_counts_icp, in_plane_threshold,
+                                                                return_outliers=True)
+    dfBB_icp.to_excel(join(path_results, 'dfBB_icp_{}.xlsx'.format(method)), index=False)
+    df_icp.to_excel(join(path_results, 'df_icp_{}.xlsx'.format(method)), index=False)
+    if len(df_outliers) > 0:
+        df_outliers.to_excel(join(path_outliers, '{}_nneigh_errxy_relative_focus_invalid-only.xlsx'.format(method)),
+                             index=False)
+
+    # 6. depth-dependent r.m.s. error
+    dfdz_icp = df_icp.groupby('z').mean().reset_index()
+    dfdz_icp.to_excel(join(path_results, 'dfdz_icp_{}.xlsx'.format(method)), index=False)
+
+    # 6. depth-averaged r.m.s. error
+    dfBB_icp_mean = depth_averaged_rmse_rigid_transforms_from_focus(dfBB_icp)
+    dfBB_icp_mean.to_excel(join(path_results, 'icp_mean-rmse_{}.xlsx'.format(method)))
+
+    # plot accuracy of rigid transformations
+    if dict_plots['fit_rt_accuracy']:
+        ms = 3
+        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True, figsize=(size_x_inches * 1.1, size_y_inches * 1.5))
+
+        ax1.plot(dfdz_icp.z, dfdz_icp.dx, '-o', ms=ms, color='r', label=r'$\Delta x$')
+        ax1.plot(dfdz_icp.z, dfdz_icp.dy, '-o', ms=ms, color='b', label=r'$\Delta y$')
+        ax1.plot(dfdz_icp.z, dfdz_icp.dz, '-o', ms=ms, color='k', label=r'$\Delta z$')
+        ax1.set_ylabel(r'Displacement $(\mu m)$')
+        ax1.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+        ax2.plot(dfdz_icp.z, dfdz_icp.rmse, '-o', color='k', ms=ms)
+        ax2.set_ylabel(r'$RMSE_{fit} \: (\mu m)$')
+
+        ax3.plot(dfdz_icp.z, dfdz_icp.rmse_x, '-o', ms=ms, color='r', label=r'$x$')
+        ax3.plot(dfdz_icp.z, dfdz_icp.rmse_y, '-o', ms=ms, color='b', label=r'$y$')
+        ax3.plot(dfdz_icp.z, dfdz_icp.rmse_z, '-o', ms=ms, color='k', label=r'$z$')
+        ax3.set_ylabel(r'$RMSE \: (\mu m)$')
+        ax3.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+        plt.tight_layout()
+        plt.savefig(join(path_results, 'accuracy_of_rigid_transformations_{}.png'.format(method)))
+        plt.close()
+
+
+def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
+    if xy_units == 'microns':
+        microns_per_pixel = 1
+    elif xy_units == 'pixels':
+        microns_per_pixel = dict_inputs['microns_per_pixel']
+    else:
+        raise ValueError("xy_units must be: ['microns', 'pixels'].")
+
+    # read coords
+    if dict_data['dataset_rmse'].startswith('corrected'):
+        if 'IDPT' in dict_data[dict_data['dataset_rmse']].keys():
+            dfi = dict_data[dict_data['dataset_rmse']]['IDPT']
+            dfs = dict_data[dict_data['dataset_rmse']]['SPCT']
+            dfg = dict_data[dict_data['dataset_rmse']]['GDPT']
+        else:
+            if dict_data['dataset_rmse'] == 'corrected':
+                path_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane.xlsx')
+                path_spct = join(dict_paths['fit_plane'], 'spct_error_relative_plane.xlsx')
+                path_gdpt = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane.xlsx')
+            elif dict_data['dataset_rmse'] == 'corrected_all':
+                path_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane_all.xlsx')
+                path_spct = join(dict_paths['fit_plane'], 'spct_error_relative_plane_all.xlsx')
+                path_gdpt = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane_all.xlsx')
+            else:
+                raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
+            dfi = pd.read_excel(path_idpt)
+            dfs = pd.read_excel(path_spct)
+            dfg = pd.read_excel(path_gdpt)
+    elif dict_data['dataset_rmse'] == 'rigid_transformations':
+        dfi = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_idpt.xlsx'))
+        dfs = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_spct.xlsx'))
+        dfg = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdpt.xlsx'))
+    else:
+        raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all', 'rigid_transformations']")
+
+    # read inputs
+    col_error_z = dict_data['use_columns']['rmse_error_z']
 
     true_num_particles_per_z = dict_inputs['true_num_particles_per_z']
 
@@ -864,6 +974,8 @@ def evaluate_rmse_post_tilt_corr(dataset, dict_data, dict_inputs, dict_filters, 
 
     # --- PROCESSING
 
+    # rmse-z
+
     # number of z-positions
     num_z_positions = len(dfi['z_nominal'].unique())
     true_total_num = true_num_particles_per_z * num_z_positions
@@ -872,33 +984,129 @@ def evaluate_rmse_post_tilt_corr(dataset, dict_data, dict_inputs, dict_filters, 
     dfs['r_microns'] = dfs['r'] * microns_per_pixel
     dfg['r_microns'] = dfg['r'] * microns_per_pixel
     # square all errors
-    dfi['rmse_z'] = dfi['error_rel_plane'] ** 2
-    dfs['rmse_z'] = dfs['error_rel_plane'] ** 2
-    dfg['rmse_z'] = dfg['error_rel_plane'] ** 2
+    dfi['rmse_z'] = dfi[col_error_z] ** 2
+    dfs['rmse_z'] = dfs[col_error_z] ** 2
+    dfg['rmse_z'] = dfg[col_error_z] ** 2
 
     # compute rmse_z by z
     z_trues = dfi['z_nominal'].unique()
-    dfim = bin_by_z_fp(df=dfi,
-                       z_bins=z_trues,
-                       true_num_particles_per_z=true_num_particles_per_z,
-                       true_total_num=true_total_num,
-                       path_results=path_results,
-                       method='idpt')
-    dfsm = bin_by_z_fp(df=dfs,
-                       z_bins=z_trues,
-                       true_num_particles_per_z=true_num_particles_per_z,
-                       true_total_num=true_total_num,
-                       path_results=path_results,
-                       method='spct')
-    dfgm = bin_by_z_fp(df=dfg,
-                       z_bins=z_trues,
-                       true_num_particles_per_z=true_num_particles_per_z,
-                       true_total_num=true_total_num,
-                       path_results=path_results,
-                       method='gdpt')
+    dfim, dfim_global = bin_by_z_fp(df=dfi,
+                                    z_bins=z_trues,
+                                    true_num_particles_per_z=true_num_particles_per_z,
+                                    true_total_num=true_total_num,
+                                    path_results=path_results,
+                                    method='idpt',
+                                    return_global=True)
+    dfsm, dfsm_global = bin_by_z_fp(df=dfs,
+                                    z_bins=z_trues,
+                                    true_num_particles_per_z=true_num_particles_per_z,
+                                    true_total_num=true_total_num,
+                                    path_results=path_results,
+                                    method='spct',
+                                    return_global=True)
+    dfgm, dfgm_global = bin_by_z_fp(df=dfg,
+                                    z_bins=z_trues,
+                                    true_num_particles_per_z=true_num_particles_per_z,
+                                    true_total_num=true_total_num,
+                                    path_results=path_results,
+                                    method='gdpt',
+                                    return_global=True)
 
+    # TODO:  I should add empty dictionaries to dict_data so I know what data does get put in there.
     dict_rmse_z = dict({'rmse_z': {'IDPT': dfim, 'SPCT': dfsm, 'GDPT': dfgm}})
     dict_data.update(dict_rmse_z)
+
+    # ---
+
+    path_pubfigs = dict_paths['pubfigs']
+    make_dir(path=path_pubfigs)
+
+    path_supfigs = dict_paths['supfigs']
+    make_dir(path=path_supfigs)
+
+    # mean rmse_z via fit-plane
+    depth_averaged_fps = []
+    global_averaged_fps = []
+    dfzs = [dfim, dfsm, dfgm]
+    dfms = [dfim_global, dfsm_global, dfgm_global]
+    mtds = ['idpt', 'spct', 'gdpt']
+    for dfz, dfm, mtd in zip(dfzs, dfms, mtds):
+        # depth-averaged
+        depth_averaged_fp = dfz[['cm', 'rmse_z', 'count_id', 'true_num_per_z', 'percent_meas']]
+        depth_averaged_fp['binz'] = 1
+        depth_averaged_fp = depth_averaged_fp.rename(columns={'rmse_z': 'fp_rmse_z',
+                                                              'count_id': 'fp_count_id',
+                                                              'true_num_per_z': 'fp_true_num',
+                                                              'percent_meas': 'fp_percent_meas'})
+        depth_averaged_fp = depth_averaged_fp.groupby('binz').mean().reset_index().drop(columns=['binz'])
+        depth_averaged_fp = depth_averaged_fp[['cm', 'fp_rmse_z', 'fp_count_id', 'fp_true_num', 'fp_percent_meas']]
+        depth_averaged_fp.insert(loc=0, column='method', value=[mtd.upper()])
+        depth_averaged_fps.append(depth_averaged_fp)
+
+        # global-averaged
+        global_averaged_fp = dfm[['cm', 'rmse_z', 'count_id', 'true_num', 'percent_meas']]
+        global_averaged_fp.insert(loc=0, column='method', value=[mtd.upper()])
+        global_averaged_fps.append(global_averaged_fp)
+
+    depth_averaged_fps = pd.concat(depth_averaged_fps)
+    global_averaged_fps = pd.concat(global_averaged_fps)
+
+    # mean rmse via rigid transformations
+    if dict_data['dataset_rmse'] == 'rigid_transformations':
+        depth_averaged_icps = []
+        global_averaged_icps = []
+        mtds = ['idpt', 'spct', 'gdpt']
+        for mtd in mtds:
+            # depth-averaged r.m.s. error
+            depth_averaged_icp = pd.read_excel(
+                join(dict_paths['rigid_transformations'], 'df_icp_{}.xlsx'.format(mtd))).groupby('zA').mean()
+            depth_averaged_icp = depth_averaged_icp[['precision', 'rmse',
+                                                     'rmse_x', 'rmse_y', 'rmse_xy', 'rmse_z',
+                                                     'num_icp', 'numB', 'numA',
+                                                     'dx', 'dy', 'dz',
+                                                     ]]
+            depth_averaged_icp = depth_averaged_icp.rename(columns={'precision': 'rt_precision',
+                                                                    'rmse': 'rt_rmse',
+                                                                    'rmse_x': 'rt_rmse_x',
+                                                                    'rmse_y': 'rt_rmse_y',
+                                                                    'rmse_xy': 'rt_rmse_xy',
+                                                                    'rmse_z': 'rt_rmse_z',
+                                                                    'num_icp': 'rt_num_icp',
+                                                                    'numB': 'rt_numB',
+                                                                    'numA': 'rt_numA',
+                                                                    'dx': 'rt_dx',
+                                                                    'dy': 'rt_dy',
+                                                                    'dz': 'rt_dz', })
+            depth_averaged_icp.insert(loc=0, column='method', value=[mtd.upper()])
+            depth_averaged_icps.append(depth_averaged_icp)
+
+            # global-average r.m.s. error
+            global_averaged_icp = depth_averaged_rmse_rigid_transforms_from_focus(
+                pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_{}.xlsx'.format(mtd))))
+            global_averaged_icp = global_averaged_icp.drop(columns=['bin'])
+            global_averaged_icp = global_averaged_icp.rename(columns={'rmse_errx': 'rt_rmse_x',
+                                                                      'rmse_erry': 'rt_rmse_y',
+                                                                      'rmse_errxy': 'rt_rmse_xy',
+                                                                      'rmse_errz': 'rt_rmse_z',
+                                                                      'rmse_errxyz': 'rt_rmse', })
+            global_averaged_icp.insert(loc=0, column='method', value=[mtd.upper()])
+            global_averaged_icps.append(global_averaged_icp)
+
+        depth_averaged_icps = pd.concat(depth_averaged_icps)
+        global_averaged_icps = pd.concat(global_averaged_icps)
+
+        depth_averaged_fps = depth_averaged_fps.merge(depth_averaged_icps, how='inner', on='method')
+        global_averaged_fps = global_averaged_fps.merge(global_averaged_icps, how='inner', on='method')
+
+    depth_averaged_fps.to_excel(join(path_supfigs, 'depth-averaged_performance_w_GDPT.xlsx'), index=False)
+    global_averaged_fps.to_excel(join(path_supfigs, 'global-averaged_performance_w_GDPT.xlsx'), index=False)
+
+    depth_averaged_fps = depth_averaged_fps[depth_averaged_fps['method'].isin(['IDPT', 'SPCT'])]
+    depth_averaged_fps.to_excel(join(path_pubfigs, 'depth-averaged_performance.xlsx'), index=False)
+    global_averaged_fps = global_averaged_fps[global_averaged_fps['method'].isin(['IDPT', 'SPCT'])]
+    global_averaged_fps.to_excel(join(path_pubfigs, 'global-averaged_performance.xlsx'), index=False)
+
+    # ---
 
     # bin by z
     if dict_plots['local_rmse_z']['bin_z']:
@@ -992,7 +1200,7 @@ def evaluate_rmse_post_tilt_corr(dataset, dict_data, dict_inputs, dict_filters, 
 
         # plot
         clrs = ['black', 'blue', 'red']
-        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True, figsize=(size_x_inches, size_y_inches * 1.25))
+        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True, figsize=(size_x_inches, size_y_inches * 1.75))
 
         for i, bin_r in enumerate(dfim.bin_tl.unique()):
             dfibr = dfim[dfim['bin_tl'] == bin_r]
@@ -1005,116 +1213,24 @@ def evaluate_rmse_post_tilt_corr(dataset, dict_data, dict_inputs, dict_filters, 
             ax3.plot(dfgbr.bin_ll, dfgbr['rmse_z'], '-o', ms=4, color=clrs[i])
 
         ax1.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
-        ax1.legend(loc='lower left', bbox_to_anchor=(0, 1.0), ncol=3, title=r'$r^{\delta} \: (\mu m)$')
+        ax1.legend(loc='lower left', bbox_to_anchor=(0.2, 1.0), ncol=3, title=r'$r^{\delta} \: (\mu m)$')
+        ax1.text(0.05, 0.925, 'IDPT', horizontalalignment='left', verticalalignment='top', transform=ax1.transAxes)
 
         ax2.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
+        ax2.text(0.05, 0.925, 'SPCT', horizontalalignment='left', verticalalignment='top', transform=ax2.transAxes)
 
         ax3.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
         ax3.set_xlabel(r'$z \: (\mu m)$')
         ax3.set_xticks([-50, -25, 0, 25, 50])
-
-        ylim1 = ax1.get_ylim()
-        ylim2 = ax2.get_ylim()
-        ylim3 = ax3.get_ylim()
-        ylims = [0, np.max([ylim1[1], ylim2[1], ylim3[1]])]
-        for ax, mtd in zip([ax1, ax2, ax3], ['IDPT', 'SPCT', 'GDPT']):
-            ax.set_ylim(ylims)
-            ax.text(x=-49.5, y=ylims[1] - 0.85, s=mtd)
+        ax3.text(0.05, 0.925, 'GDPT', horizontalalignment='left', verticalalignment='top', transform=ax3.transAxes)
 
         plt.tight_layout()
         plt.savefig(join(path_results, 'bin_r-z_rmse-z_by_r-z' + '.png'))
-
-        path_pubfigs = dict_paths['pubfigs']
-        make_dir(path=path_pubfigs)
-        plt.savefig(join(path_pubfigs, 'Figure 4 - Comparison of field-dependent measurement uncertainty.png'),
+        plt.savefig(join(path_supfigs, 'Figure 4a-b - Compare with GDPT.png'),
                     dpi=300)
         plt.close()
 
         # ---
-
-
-def fit_rigid_transformations(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
-    if xy_units == 'microns':
-        microns_per_pixel = 1
-    elif xy_units == 'pixels':
-        microns_per_pixel = dict_inputs['microns_per_pixel']
-    else:
-        raise ValueError("xy_units must be: ['microns', 'pixels'].")
-
-    path_results = dict_paths['rigid_transformations']
-    make_dir(path=path_results)
-
-    path_outliers = dict_paths['outliers']
-    make_dir(path=path_outliers)
-
-    if dict_data['dataset_rigid_transformations'] == 'aligned':
-        df = dict_data['aligned'][method.upper()]
-        # filter cm
-        min_cm = dict_filters['min_cm']
-        df = filter_cm(dfs=[df], labels=[method], cmin=min_cm, path_results=path_outliers)
-        df = df[0]
-    elif dict_data['dataset_rigid_transformations'].startswith('corrected'):
-        if dict_data['dataset_rigid_transformations'] == 'corrected':
-            path_ = join(dict_paths['fit_plane'], '{}_error_relative_plane.xlsx'.format(method))
-        elif dict_data['dataset_rigid_transformations'] == 'corrected_all':
-            path_ = join(dict_paths['fit_plane'], '{}_error_relative_plane_all.xlsx'.format(method))
-        else:
-            raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
-        df = pd.read_excel(path_)
-    else:
-        raise ValueError("Dataset not understood. Options are: ['aligned', 'corrected', 'corrected_all']")
-
-    in_plane_threshold = dict_filters['in_plane_threshold']
-    min_counts_icp = dict_filters['min_counts_icp']
-
-    # read coords: "true" in-plane positions of particles at focus (measured using ImageJ)
-    dfxyzf = dict_data['aligned']['TRUE'].copy()
-
-    # 3. convert x, y, r coordinates from units pixels to microns
-    for pix2microns in ['x', 'y', 'r']:
-        df[pix2microns] = df[pix2microns] * microns_per_pixel
-        dfxyzf[pix2microns] = dfxyzf[pix2microns] * microns_per_pixel
-
-    # 5. rigid transformations from focus using ICP
-    dfBB_icp, df_icp, df_outliers = rigid_transforms_from_focus(df, dfxyzf, min_counts_icp, in_plane_threshold,
-                                                                return_outliers=True)
-    dfBB_icp.to_excel(join(path_results, 'dfBB_icp_{}.xlsx'.format(method)), index=False)
-    df_icp.to_excel(join(path_results, 'df_icp_{}.xlsx'.format(method)), index=False)
-    if len(df_outliers) > 0:
-        df_outliers.to_excel(join(path_outliers, '{}_nneigh_errxy_relative_focus_invalid-only.xlsx'.format(method)),
-                             index=False)
-
-    # 6. depth-dependent r.m.s. error
-    dfdz_icp = df_icp.groupby('z').mean().reset_index()
-    dfdz_icp.to_excel(join(path_results, 'dfdz_icp_{}.xlsx'.format(method)), index=False)
-
-    # 6. depth-averaged r.m.s. error
-    dfBB_icp_mean = depth_averaged_rmse_rigid_transforms_from_focus(dfBB_icp)
-    dfBB_icp_mean.to_excel(join(path_results, 'icp_mean-rmse_{}.xlsx'.format(method)))
-
-    # plot accuracy of rigid transformations
-    if dict_plots['fit_rt_accuracy']:
-        ms = 3
-        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True, figsize=(size_x_inches * 1.1, size_y_inches * 1.5))
-
-        ax1.plot(dfdz_icp.z, dfdz_icp.dx, '-o', ms=ms, color='r', label=r'$\Delta x$')
-        ax1.plot(dfdz_icp.z, dfdz_icp.dy, '-o', ms=ms, color='b', label=r'$\Delta y$')
-        ax1.plot(dfdz_icp.z, dfdz_icp.dz, '-o', ms=ms, color='k', label=r'$\Delta z$')
-        ax1.set_ylabel(r'Displacement $(\mu m)$')
-        ax1.legend(loc='upper left', bbox_to_anchor=(1, 1))
-
-        ax2.plot(dfdz_icp.z, dfdz_icp.rmse, '-o', color='k', ms=ms)
-        ax2.set_ylabel(r'$RMSE_{fit} \: (\mu m)$')
-
-        ax3.plot(dfdz_icp.z, dfdz_icp.rmse_x, '-o', ms=ms, color='r', label=r'$x$')
-        ax3.plot(dfdz_icp.z, dfdz_icp.rmse_y, '-o', ms=ms, color='b', label=r'$y$')
-        ax3.plot(dfdz_icp.z, dfdz_icp.rmse_z, '-o', ms=ms, color='k', label=r'$z$')
-        ax3.set_ylabel(r'$RMSE \: (\mu m)$')
-        ax3.legend(loc='upper left', bbox_to_anchor=(1, 1))
-
-        plt.tight_layout()
-        plt.savefig(join(path_results, 'accuracy_of_rigid_transformations_{}.png'.format(method)))
-        plt.close()
 
 
 def evaluate_field_dependent_effects(method, dict_data, dict_inputs, dict_paths, dict_plots):
@@ -1126,13 +1242,15 @@ def evaluate_field_dependent_effects(method, dict_data, dict_inputs, dict_paths,
     plot_parabola_shape_across_z = dict_plots['field_dependent_effects']['plot_shape_change']
     mean_z_per_pid = dict_plots['field_dependent_effects']['plot_mean_z_per_pid']
 
-    dataset = dict_data['dataset_rmse']
-    if dataset == 'corrected':
+    if dict_data['dataset_field_dependent_effects'] == 'corrected':
         path_read = join(dict_paths['fit_plane'], '{}_error_relative_plane.xlsx'.format(method))
         fn_write = '{}_error_relative_plane_with_parabola.xlsx'.format(method)
-    elif dataset == 'corrected_all':
+    elif dict_data['dataset_field_dependent_effects'] == 'corrected_all':
         path_read = join(dict_paths['fit_plane'], '{}_error_relative_plane_all.xlsx'.format(method))
         fn_write = '{}_error_relative_plane_all_with_parabola.xlsx'.format(method)
+    elif dict_data['dataset_field_dependent_effects'] == 'rigid_transformations':
+        path_read = join(dict_paths['rigid_transformations'], 'dfBB_icp_{}.xlsx'.format(method))
+        fn_write = '{}_dfBB_icp_error_relative_plane_with_parabola.xlsx'.format(method)
     else:
         raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
 
@@ -1332,23 +1450,22 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
         # plot
         fig, axs = plt.subplots(2, 2, sharex=True, figsize=(size_x_inches * 2, size_y_inches * 1.05))
 
-        ax2, ax3, ax1, ax4 = axs.ravel()
+        ax1, ax3, ax2, ax4 = axs.ravel()
 
         ax1.plot(dfim[px], dfim[py], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
         ax1.plot(dfsm[px], dfsm[py], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
-        ax1.set_xlabel(xlbl)
-        ax1.set_xticks(xticks)
         ax1.set_ylabel(ylbl_cm)
         ax1.set_ylim(ylim_cm)
         ax1.set_yticks(yticks_cm)
+        ax1.legend(loc='lower left', bbox_to_anchor=(0, 1.0), ncol=3)
 
         ax2.plot(dfim[px], dfim[pyb], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
         ax2.plot(dfsm[px], dfsm[pyb], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
         ax2.set_ylabel(ylbl_phi)
         ax2.set_ylim(ylim_phi)
         ax2.set_yticks(yticks_phi)
-        ax2.legend(loc='lower left', bbox_to_anchor=(0, 1.0),
-                   ncol=3)  # loc='upper left', bbox_to_anchor=(1, 1)) , ncol=2
+        ax2.set_xlabel(xlbl)
+        ax2.set_xticks(xticks)
 
         ax3.plot(dfirt[px1], dfirt[py12], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
         ax3.plot(dfsrt[px1], dfsrt[py12], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
@@ -1375,14 +1492,17 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
         # LOAD DATA
 
         # load coords
-        dataset = dict_data['dataset_rmse']
-        if dataset == 'corrected':
+        if dict_data['dataset_field_dependent_effects'] == 'corrected':
             path_read_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane.xlsx')
             path_read_spct = join(dict_paths['field_dependent_effects'], 'spct_error_relative_plane_with_parabola.xlsx')
-        elif dataset == 'corrected_all':
+        elif dict_data['dataset_field_dependent_effects'] == 'corrected_all':
             path_read_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane_all.xlsx')
             path_read_spct = join(dict_paths['field_dependent_effects'],
                                   'spct_error_relative_plane_all_with_parabola.xlsx')
+        elif dict_data['dataset_field_dependent_effects'] == 'rigid_transformations':
+            path_read_idpt = join(dict_paths['rigid_transformations'], 'dfBB_icp_idpt.xlsx')
+            path_read_spct = join(dict_paths['field_dependent_effects'],
+                                  'spct_dfBB_icp_error_relative_plane_with_parabola.xlsx')
         else:
             raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
         dfi = pd.read_excel(path_read_idpt)
@@ -1411,9 +1531,9 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
                 continue
 
             fig, axs = plt.subplots(2, 2,
-                                    figsize=(size_x_inches * 2.125, size_y_inches * 1.05),
+                                    figsize=(size_x_inches * 2.175, size_y_inches * 1.25),
                                     sharex=False, layout='constrained',
-                                    gridspec_kw={'wspace': 0.1, 'hspace': 0.2})
+                                    gridspec_kw={'wspace': 0.15, 'hspace': 0.125})
             ax1, ax2, ax3, ax4 = axs.ravel()
             ax_idpt = ax1
             ax_spct = ax3
@@ -1452,7 +1572,11 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             ax_z_ylim = ax_z.get_ylim()
 
             # legend: z-coordinates
-            z_legend = ax_z.legend(handles=[p_idpt, p_spct, p_sub])
+            """z_legend = ax_z.legend(handles=[p_idpt, p_spct, p_sub],
+                                   ncol=3, loc='lower left', bbox_to_anchor=(0.0, 1.0), borderpad=0.05,
+                                   handlelength=1.2, handletextpad=0.3, labelspacing=0.3, columnspacing=1)"""
+            z_legend = ax_z.legend(handles=[p_idpt, p_spct, p_sub], loc='lower left',
+                                   handlelength=1.5, handletextpad=0.4, labelspacing=0.4)
             ax_z.add_artist(z_legend)
 
             # legend: z-error-coordinates
@@ -1460,7 +1584,7 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             p_errz, = ax_zerr.plot(fr, fz - bz, color=clr_ex_errz, label=r'$\epsilon_{z}(r)$')
             ax_zerr.set_ylim([ax_z_ylim[0] - bz, ax_z_ylim[1] - bz])
             ax_zerr.set_ylabel(r'$\epsilon_{z} \: (\mu m)$')
-            ax_zerr.legend(loc='lower center')
+            ax_zerr.legend(loc='lower right', bbox_to_anchor=(1.0, 1.0))  # , borderpad=0.05, handlelength=1.2)
 
             # --- plot parabolas across all z's
 
@@ -1473,6 +1597,8 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
                 p1, = ax_parabola.plot(fr, fz, color=next(clrs), label=int(np.round(zt, 0)))
             ax_parabola.set_xlabel(r'$r \: (\mu m)$')
             ax_parabola.set_ylabel(r'$\epsilon_{z}(r) \: (\mu m)$')
+            ax_parabola.text(0.05, 0.89, 'SPCT',
+                             horizontalalignment='left', verticalalignment='top', transform=ax_parabola.transAxes)
 
             # --- 2d-bin by r and z
 
@@ -1491,15 +1617,23 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
                 ax_spct.plot(dfsbr.bin_ll, dfsbr['rmse_z'], '-o', ms=4, color=clrs[i], label=int(np.round(bin_r, 0)))
 
             ax_idpt.set_ylabel(r'$\sigma_{z}^{\delta}(z) \: (\mu m)$')
-            ax_idpt.set_ylim([0, 3.2])
+            ax_idpt.set_ylim([0, 3.1])
             ax_idpt.set_yticks([0, 1, 2, 3])
-            ax_idpt.legend(loc='upper center', ncol=3, title=r'$r^{\delta} \: (\mu m)$')
+
+            ax_idpt.legend(loc='lower left', bbox_to_anchor=(0.05, 1.0), ncol=3, title=r'$r^{\delta} \: (\mu m)$')
+            """ax_idpt.legend(loc='upper right', title=r'$r^{\delta} \: (\mu m)$', # ncol=3,
+                           markerscale=0.8, borderpad=0.3, handlelength=1.2, handletextpad=0.6,
+                           labelspacing=0.25, columnspacing=1.5)"""
+            ax_idpt.text(0.05, 0.89, 'IDPT',
+                         horizontalalignment='left', verticalalignment='top', transform=ax_idpt.transAxes)
 
             ax_spct.set_ylabel(r'$\sigma_{z}^{\delta}(z) \: (\mu m)$')
-            ax_spct.set_ylim([0, 3.2])
+            ax_spct.set_ylim([0, 3.1])
             ax_spct.set_yticks([0, 1, 2, 3])
             ax_spct.set_xlabel(r'$z \: (\mu m)$')
             ax_spct.set_xticks([-50, -25, 0, 25, 50])
+            ax_spct.text(0.05, 0.89, 'SPCT',
+                         horizontalalignment='left', verticalalignment='top', transform=ax_spct.transAxes)
 
             ax_idpt.tick_params(axis="x", labelbottom=False)
 
@@ -1514,7 +1648,14 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             plt.close()
 
 
-def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_plots):
+def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
+    if xy_units == 'microns':
+        microns_per_pixel = 1
+    elif xy_units == 'pixels':
+        microns_per_pixel = dict_inputs['microns_per_pixel']
+    else:
+        raise ValueError("xy_units must be: ['microns', 'pixels'].")
+
     path_results = dict_paths['supfigs']
     make_dir(path=path_results)
     lim_errxy = dict_filters['in_plane_threshold']
@@ -1679,29 +1820,17 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
     # ---
 
     if dict_plots['supfigs']['hist_z']:
-        dataset = dict_data['dataset_rmse']
-        if dataset == 'corrected':
-            path_idpt = join(dict_paths['fit_plane'], '{}_error_relative_plane.xlsx'.format('idpt'))
-            path_spct = join(dict_paths['fit_plane'], '{}_error_relative_plane.xlsx'.format('spct'))
-            path_gdpt = join(dict_paths['fit_plane'], '{}_error_relative_plane.xlsx'.format('gdpt'))
-        elif dataset == 'corrected_all':
-            path_idpt = join(dict_paths['fit_plane'], '{}_error_relative_plane_all.xlsx'.format('idpt'))
-            path_spct = join(dict_paths['fit_plane'], '{}_error_relative_plane_all.xlsx'.format('spct'))
-            path_gdpt = join(dict_paths['fit_plane'], '{}_error_relative_plane_all.xlsx'.format('gdpt'))
+        if dict_data['dataset_rmse'] == 'corrected':
+            path_ = join(dict_paths['fit_plane'], '{}_error_relative_plane.xlsx'.format(method))
+        elif dict_data['dataset_rmse'] == 'corrected_all':
+            path_ = join(dict_paths['fit_plane'], '{}_error_relative_plane_all.xlsx'.format(method))
+        elif dict_data['dataset_rmse'] == 'rigid_transformations':
+            path_ = join(dict_paths['rigid_transformations'], 'dfBB_icp_{}.xlsx'.format(method))
         else:
-            raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
+            raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all', 'rigid_transformations']")
 
         # 1. read test coords
-        if method == 'idpt':
-            df = pd.read_excel(path_idpt)
-        elif method == 'spct':
-            df = pd.read_excel(path_spct)
-        elif method == 'gdpt':
-            df = pd.read_excel(path_gdpt)
-        else:
-            raise ValueError("method not understood. Options are: ['idpt', 'spct', 'gdpt']")
-
-        # plot histogram of errors
+        df = pd.read_excel(path_)
 
         # histogram of z-errors
         error_col = 'error_rel_plane'
@@ -1796,6 +1925,188 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
             plt.tight_layout()
             plt.savefig(join(path_results, '{}_hist_{}_of_rigid_transformations.png'.format(method, ycol)))
 
+    # ---
+
+    if dict_plots['supfigs']['rmse_z_by_cmin']:
+        # read coords
+        if dict_data['dataset_rmse'].startswith('corrected'):
+            if dict_data['dataset_rmse'] == 'corrected':
+                path_ = join(dict_paths['fit_plane'], '{}_error_relative_plane.xlsx'.format(method))
+            elif dict_data['dataset_rmse'] == 'corrected_all':
+                path_ = join(dict_paths['fit_plane'], '{}_error_relative_plane_all.xlsx'.format(method))
+            else:
+                raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
+        elif dict_data['dataset_rmse'] == 'rigid_transformations':
+            path_ = join(dict_paths['rigid_transformations'], 'dfBB_icp_{}.xlsx'.format(method))
+        else:
+            raise ValueError(
+                "Dataset not understood. Options are: ['corrected', 'corrected_all', 'rigid_transformations']")
+        df = pd.read_excel(path_)
+
+        # setup
+        num_frames_total = dict_inputs['num_frames_total']
+        true_num_particles_per_frame = dict_inputs['true_num_particles_per_frame']
+        num_particles_total = num_frames_total * true_num_particles_per_frame
+        col_error_z = dict_data['use_columns']['rmse_error_z']
+        c_min_filter = dict_filters['min_cm']
+
+        column_to_bin = 'z_nominal'
+        bins = df[column_to_bin].unique()
+        column_to_count = 'id'
+        round_to_decimal = 1
+        return_groupby = True
+
+        # evaluate rmse_z at each c_min
+        c_mins = np.linspace(c_min_filter, 1, 50)
+
+        num_particless = []
+        rmse_depth_averageds = []
+        rmse_global_averages = []
+        for c_min in c_mins:
+            # --- depth-averaged rmse-z
+            # square all errors
+            dfcmda = df[df['cm'] > c_min]
+            dfcmda['rmse_z'] = dfcmda[col_error_z] ** 2
+            # compute 1D bin (z)
+            dfm, dfstd = bin.bin_generic(dfcmda, column_to_bin, column_to_count, bins, round_to_decimal, return_groupby)
+            # compute rmse-z
+            dfm['rmse_z'] = np.sqrt(dfm['rmse_z'])
+            rmse_depth_averaged = dfm['rmse_z'].mean()
+
+            # --- global-averaged rmse-z
+            dfcm = df[df['cm'] > c_min]
+            num_p = len(dfcm)
+            errors = df[col_error_z].to_numpy()
+            sq_errors = np.square(errors)
+            mean_sq_errors = np.mean(sq_errors)
+            rmse_global_average = np.sqrt(mean_sq_errors)
+
+            num_particless.append(num_p)
+            rmse_depth_averageds.append(rmse_depth_averaged)
+            rmse_global_averages.append(rmse_global_average)
+
+        res = pd.DataFrame(np.vstack([c_mins, rmse_depth_averageds, rmse_global_averages, num_particless]).T,
+                           columns=['cmin', 'rmse_z_da', 'rmse_z_ga', 'num_meas'])
+        res['percent_meas'] = res['num_meas'] / num_particles_total
+        res['avg_num_meas_by_z'] = res['percent_meas'] / num_frames_total
+        res.to_excel(join(path_results, '{}_rmse-z_by_c-min.xlsx'.format(method)))
+
+        fig, ax = plt.subplots(figsize=(size_x_inches / 1.25, size_y_inches / 1.5))
+
+        ax.plot(res['cmin'], res['percent_meas'], 'k-o', ms=2, zorder=3.1)
+        ax.set_ylabel(r"$\overline{N'_{p}}(z)/N_{p}$", color='k')
+        ax.set_xlabel(r'$c_{min}$')
+        ax.text(0.1, 0.1, method.upper(), horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes)
+
+        ax2 = ax.twinx()
+        ax2.plot(res['cmin'], res['rmse_z_da'], 'r-o', ms=2, zorder=3.2)
+        ax2.set_ylabel(r'$\overline{\sigma_{z}} \: (\mu m)$', color='r')
+
+        plt.tight_layout()
+        plt.savefig(join(path_results, '{}_rmse-z_by_c-min.png'.format(method)), dpi=300, facecolor='white')
+        plt.close()
+
+        # ---
+
+        # plot methods on same figure
+        if os.path.exists(join(path_results, 'idpt_rmse-z_by_c-min.xlsx')) and os.path.exists(join(path_results, 'spct_rmse-z_by_c-min.xlsx')):
+            dfi = pd.read_excel(join(path_results, 'idpt_rmse-z_by_c-min.xlsx'))
+            dfs = pd.read_excel(join(path_results, 'spct_rmse-z_by_c-min.xlsx'))
+
+            results = [dfi, dfs]
+            clrs = [sciblue, scigreen]
+            lbls = ['IDPT', 'SPCT']
+            save_id = 'compare_rmse-z_by_c-min'
+
+            if os.path.exists(join(path_results, 'gdpt_rmse-z_by_c-min.xlsx')):
+                dfg = pd.read_excel(join(path_results, 'gdpt_rmse-z_by_c-min.xlsx'))
+                results.extend([dfg])
+                clrs.extend([sciorange])
+                lbls.extend(['GDPT'])
+                save_id = save_id + '_w_GDPT'
+
+            fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, figsize=(size_x_inches, size_y_inches))
+            for res, clr, lbl in zip(results, clrs, lbls):
+                ax1.plot(res['cmin'], res['percent_meas'], '-o', ms=2, color=clr, label=lbl)
+                ax2.plot(res['cmin'], res['rmse_z_da'], '-o', ms=2, color=clr, label=lbl)
+
+            ax1.set_ylabel(r"$\overline{N'_{p}}(z)/N_{p}$")
+            ax1.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+            ax2.set_xlabel(r'$c_{min}$')
+            ax2.set_ylabel(r'$\overline{\sigma_{z}} \: (\mu m)$')
+
+            plt.tight_layout()
+            plt.savefig(join(path_results, save_id + '.png'), dpi=300, facecolor='white')
+            plt.close()
+
+    # ---
+
+    if dict_plots['supfigs']['compare_calibration_particle'] and method == 'idpt':
+        # read coords
+        if dict_data['dataset_rmse'].startswith('corrected'):
+            if dict_data['dataset_rmse'] == 'corrected':
+                path_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane.xlsx')
+                path_spct = join(dict_paths['fit_plane'], 'spct_error_relative_plane.xlsx')
+                path_gdpt = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane.xlsx')
+            elif dict_data['dataset_rmse'] == 'corrected_all':
+                path_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane_all.xlsx')
+                path_spct = join(dict_paths['fit_plane'], 'spct_error_relative_plane_all.xlsx')
+                path_gdpt = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane_all.xlsx')
+            else:
+                raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
+            dfi = pd.read_excel(path_idpt)
+            dfs = pd.read_excel(path_spct)
+            dfg = pd.read_excel(path_gdpt)
+        elif dict_data['dataset_rmse'] == 'rigid_transformations':
+            dfi = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_idpt.xlsx'))
+            dfs = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_spct.xlsx'))
+            dfg = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdpt.xlsx'))
+        else:
+            raise ValueError(
+                "Dataset not understood. Options are: ['corrected', 'corrected_all', 'rigid_transformations']")
+
+        # setup
+        col_error_z = dict_data['use_columns']['rmse_error_z']
+        cx, cy, cbb = 395 / microns_per_pixel, 370 / microns_per_pixel, 25 / microns_per_pixel
+
+        dfi = dfi[(dfi['x'] > cx - cbb) & (dfi['x'] < cx + cbb) & (dfi['y'] > cy - cbb) & (dfi['y'] < cy + cbb)]
+        dfs = dfs[(dfs['x'] > cx - cbb) & (dfs['x'] < cx + cbb) & (dfs['y'] > cy - cbb) & (dfs['y'] < cy + cbb)]
+        dfg = dfg[(dfg['x'] > cx - cbb) & (dfg['x'] < cx + cbb) & (dfg['y'] > cy - cbb) & (dfg['y'] < cy + cbb)]
+
+        rmsez_ga_i = np.sqrt(np.mean(np.square(dfi[col_error_z].to_numpy())))
+        rmsez_ga_s = np.sqrt(np.mean(np.square(dfs[col_error_z].to_numpy())))
+        rmsez_ga_g = np.sqrt(np.mean(np.square(dfg[col_error_z].to_numpy())))
+
+        dfi = dfi.groupby('z_nominal').mean().reset_index()
+        dfs = dfs.groupby('z_nominal').mean().reset_index()
+        dfg = dfg.groupby('z_nominal').mean().reset_index()
+
+        ms = 2
+        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, figsize=(size_x_inches * 1.2, size_y_inches * 1.1))
+
+        ax1.plot(dfi['z_nominal'], dfi['cm'], '-o', ms=ms, color=sciblue, label='IDPT')
+        ax1.plot(dfs['z_nominal'], dfs['cm'], '-o', ms=ms, color=scigreen, label='SPCT')
+        # ax1.plot(dfg['z_nominal'], dfg['cm'], '-o', ms=ms, color=sciorange, label='GDPT')
+
+        ax2.plot(dfi['z_nominal'], dfi['z'] - dfi['z_calib'], '-o', ms=ms, color=sciblue, label='{}'.format(np.round(rmsez_ga_i, 2)))
+        ax2.plot(dfs['z_nominal'], dfs['z'] - dfs['z_calib'], '-o', ms=ms, color=scigreen, label='{}'.format(np.round(rmsez_ga_s, 2)))
+        # ax2.plot(dfg['z_nominal'], dfg['z'] - dfg['z_calib'], '-o', ms=ms, color=sciorange, label='{}'.format(np.round(rmsez_ga_g, 2)))
+
+        ax1.set_ylabel(r'$c_m$')
+        ax1.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+        ax2.set_xlabel(r'$z \: (\mu m)$')
+        ax2.set_xticks([-50, -25, 0, 25, 50])
+        ax2.set_ylabel(r'$\epsilon_{i,z} \: (\mu m)$')
+        ax2.legend(loc='upper left', bbox_to_anchor=(1, 1), title=r'$\overline{\sigma_{z}} \: (\mu m)$')
+        plt.tight_layout()
+        plt.savefig(join(path_results, 'compare_calibration_particle.png'))
+
+    # ---
+
+    if dict_plots['supfigs']['asymmetric_similarity']:
+        pass
 
 if __name__ == '__main__':
     # TODO: limit images in dataset (that's on Github) to only those within this z-range
@@ -1818,6 +2129,7 @@ if __name__ == '__main__':
     # inputs from test
     Z_RANGE = [-50, 55]
     MEASUREMENT_DEPTH = Z_RANGE[1] - Z_RANGE[0]
+    NUM_FRAMES_TOTAL = 63
     BASELINE_FRAME = 39
     PADDING = 5  # units: pixels
     IMG_XC, IMG_YC = NUM_PIXELS / 2 + PADDING, NUM_PIXELS / 2 + PADDING
@@ -1891,6 +2203,7 @@ if __name__ == '__main__':
         'microns_per_pixel': MICRONS_PER_PIXEL,
         'padding': PADDING,
         'measurement_depth': MEASUREMENT_DEPTH,
+        'num_frames_total': NUM_FRAMES_TOTAL,
         'baseline_frame': BASELINE_FRAME,
         'zf_calibration': Z_ZERO_OF_CALIB_ID_FROM_CALIBRATION,
         'zf_test': Z_ZERO_OF_CALIB_ID_FROM_TEST,
@@ -1927,13 +2240,17 @@ if __name__ == '__main__':
             {'plot_each_z': True, 'plot_overlay': True, 'plot_shape_change': True, 'plot_mean_z_per_pid': False},
         'pubfigs': {'Figure3': True, 'Figure4': True},
         'supfigs':
-            {'Figure3_GDPT': True, 'outliers': True, 'hist_z': True, 'hist_xy': True}
+            {'Figure3_GDPT': True, 'outliers': True, 'hist_z': True, 'hist_xy': True,
+             'rmse_z_by_cmin': False, 'compare_calibration_particle': False, 'asymmetric_similarity': False,}
     }
 
     DICT_DATA = {
-        'dataset_fit_plane': 'aligned',  # aligned', 'rigid_transformations'
-        'dataset_rmse': 'corrected',  # corrected: post fit plane and correct tilt.
-        'dataset_rigid_transformations': 'corrected',  # 'aligned', 'corrected'
+        'dataset_fit_plane': 'aligned',  # 'aligned' == fit plane to raw positions
+        'dataset_rigid_transformations': 'corrected',  # 'corrected' == fit rigid transformations to fit-plane output
+        'dataset_rmse': 'rigid_transformations',  # 'rigid_transformations' == evaluate after all outliers removed
+        'dataset_field_dependent_effects': 'rigid_transformations',
+        'dataset_performance': 'placeholder',
+        'use_columns': {'rmse_error_z': 'error_rel_plane'},  # 'error_rel_plane' == plane; 'errz' == rigid transforms
     }
 
     USE_XY_UNITS = 'microns'
@@ -1950,42 +2267,38 @@ if __name__ == '__main__':
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    # FIT RIGID TRANSFORMATIONS FROM FOCUS: ITERATION #1
-    if DICT_DATA['dataset_rigid_transformations'] == 'aligned':
-        for mtd in ['idpt', 'spct', 'gdpt']:
-            fit_rigid_transformations(method=mtd,
-                                      dict_data=DICT_DATA,
-                                      dict_inputs=DICT_INPUTS,
-                                      dict_filters=DICT_FILTERS,
-                                      dict_paths=DICT_PATHS,
-                                      dict_plots=DICT_PLOTS,
-                                      xy_units=USE_XY_UNITS,
-                                      )
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------------------
     # FIT 3D PLANE TO CORRECT FOR STAGE TILT + VARIATIONS IN MICROMETER DISPLACEMENT
-    fit_plane_analysis(dict_data=DICT_DATA,
-                       dict_inputs=DICT_INPUTS,
-                       dict_filters=DICT_FILTERS,
-                       dict_paths=DICT_PATHS,
-                       dict_plots=DICT_PLOTS,
-                       xy_units=USE_XY_UNITS,
-                       )
+    DICT_DATA = fit_plane_analysis(dict_data=DICT_DATA,
+                                   dict_inputs=DICT_INPUTS,
+                                   dict_filters=DICT_FILTERS,
+                                   dict_paths=DICT_PATHS,
+                                   dict_plots=DICT_PLOTS,
+                                   xy_units=USE_XY_UNITS,
+                                   )
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    # FIT RIGID TRANSFORMATIONS FROM FOCUS: ITERATION #2
-    if DICT_DATA['dataset_rigid_transformations'] == 'corrected':
-        for mtd in ['idpt', 'spct', 'gdpt']:
-            fit_rigid_transformations(method=mtd,
-                                      dict_data=DICT_DATA,
-                                      dict_inputs=DICT_INPUTS,
-                                      dict_filters=DICT_FILTERS,
-                                      dict_paths=DICT_PATHS,
-                                      dict_plots=DICT_PLOTS,
-                                      xy_units=USE_XY_UNITS,
-                                      )
+    # FIT RIGID TRANSFORMATIONS FROM FOCUS
+    for mtd in ['idpt', 'spct', 'gdpt']:
+        fit_rigid_transformations(method=mtd,
+                                  dict_data=DICT_DATA,
+                                  dict_inputs=DICT_INPUTS,
+                                  dict_filters=DICT_FILTERS,
+                                  dict_paths=DICT_PATHS,
+                                  dict_plots=DICT_PLOTS,
+                                  xy_units=USE_XY_UNITS,
+                                  )
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
+    # EVALUATE ROOT MEAN SQUARE ERROR POST OUTLIER REMOVAL
+    evaluate_root_mean_square_error(dict_data=DICT_DATA,
+                                    dict_inputs=DICT_INPUTS,
+                                    dict_filters=DICT_FILTERS,
+                                    dict_paths=DICT_PATHS,
+                                    dict_plots=DICT_PLOTS,
+                                    xy_units=USE_XY_UNITS,
+                                    )
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
@@ -2017,6 +2330,7 @@ if __name__ == '__main__':
                      dict_filters=DICT_FILTERS,
                      dict_paths=DICT_PATHS,
                      dict_plots=DICT_PLOTS,
+                     xy_units=USE_XY_UNITS,
                      )
 
     print("completed without errors")

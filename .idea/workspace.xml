@@ -3,37 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="393691cb-326b-4c18-b8ab-bd44c63fb764" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/idpt/IdptCalibrationStack.py" beforeDir="false" afterPath="$PROJECT_DIR$/idpt/IdptCalibrationStack.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/analyses/ref/true_positions_fiji.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/analyses/rigid_transformations_from_focus.py" beforeDir="false" afterPath="$PROJECT_DIR$/publication/analyses/rigid_transformations_from_focus.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/analyses/utils/fit.py" beforeDir="false" afterPath="$PROJECT_DIR$/publication/analyses/utils/fit.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/bin-r_rmse-z_by_r.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/bin-z_local-cm-percent-meas-rmse-z_by_z.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/bin-z_rmse-z_by_z.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/bin_r-z_rmse-z_by_r-z.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-r_rmse-z.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-rz_mean-rmse-z.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin-z_rmse-z.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_bin_r-z_rmse-z.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_mean_rmse-z_by_r.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_cm0.5_mean_rmse-z_by_z.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack_all.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/fit_plane/idpt_error_relative_calib_particle_stack_invalid-only.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/pubfigs/compare_local_Cm-phi-rmsexyz_by_z_alt-legend.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/rigid_transforms/dfBB_icp.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/rigid_transforms/df_icp.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/rigid_transforms/dfdz_icp.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/rigid_transforms/icp_mean-rmse.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/supfigs/RT_accuracy.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/supfigs/hist_errx.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/supfigs/hist_erry.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/supfigs/hist_errz.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/supfigs/idpt_cmin0.5_histogram_z-errors.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/supfigs/idpt_cmin0.5_histogram_z-errors_kde-bandwidth=0.075.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/test/test_test-coords_pdf.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/test/test_z-trajectories.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/test/test_z-trajectories_zoom.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/compare_idpt_spct_gdpt.py" beforeDir="false" afterPath="$PROJECT_DIR$/publication/compare_idpt_spct_gdpt.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -179,6 +149,10 @@
       <workItem from="1723673858299" duration="19887000" />
       <workItem from="1723698606359" duration="12919000" />
       <workItem from="1723714689984" duration="268000" />
+      <workItem from="1723747144355" duration="5872000" />
+      <workItem from="1723762097550" duration="7511000" />
+      <workItem from="1723772417651" duration="5932000" />
+      <workItem from="1723780633864" duration="7072000" />
     </task>
     <servers />
   </component>
@@ -211,6 +185,6 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/idpt$generate_results.coverage" NAME="generate_results Coverage Results" MODIFIED="1718171404739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
     <SUITE FILE_PATH="coverage/idpt$rigid_transformations_from_focus.coverage" NAME="rigid_transformations_from_focus Coverage Results" MODIFIED="1723542299247" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication/analyses" />
-    <SUITE FILE_PATH="coverage/idpt$compare_idpt_spct_gdpt.coverage" NAME="compare_idpt_spct_gdpt Coverage Results" MODIFIED="1723714740117" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
+    <SUITE FILE_PATH="coverage/idpt$compare_idpt_spct_gdpt.coverage" NAME="compare_idpt_spct_gdpt Coverage Results" MODIFIED="1723788955169" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
   </component>
 </project>
