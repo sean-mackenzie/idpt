@@ -36,10 +36,12 @@ scigreen = '#00B945'
 scired = '#FF2C00'
 sciorange = '#FF9500'
 
-plt.style.use(['science', 'ieee', 'std-colors'])  # 'ieee', 'std-colors'
+plt.style.use(['science', 'ieee'])  # 'ieee', 'std-colors'
 fig, ax = plt.subplots()
 size_x_inches, size_y_inches = fig.get_size_inches()
 plt.close(fig)
+fig_extension = '.svg'
+fig_dpi = 600
 
 
 # --- HELPER FUNCTIONS
@@ -1398,6 +1400,14 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
     plot_figure_3 = dict_plots['pubfigs']['Figure3']
     plot_figure_4 = dict_plots['pubfigs']['Figure4']
 
+    quad_figsize1 = (5.9, 2.75)
+    quad_hspace1 = 0.35
+    quad_wspace1 = 0.4
+
+    quad_figsize2 = (5.7, 3)
+    quad_hspace2 = 0.125  # height between subplots
+    quad_wspace2 = 0.125  # width between subplots
+
     if plot_figure_3:
         # read: rmse_z
         dfim = pd.read_excel(dict_paths['read_rmse_z']['IDPT'])
@@ -1447,46 +1457,54 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
         ylbl_rmse_xy = r'$\sigma_{xy}(z) \: (\mu m)$'
         ylbl_rmse_z = r'$\sigma_{z}(z) \: (\mu m)$'
 
+        ls_i = '-'
+        ls_s = '--'
+        mrk_i = 'o'
+        mrk_s = 's'
+        quad_figsize = quad_figsize1
+        quad_hspace = quad_hspace1
+        quad_wspace = quad_wspace1
+
         # plot
-        fig, axs = plt.subplots(2, 2, sharex=True, figsize=(size_x_inches * 2, size_y_inches * 1.05))
+        fig, axs = plt.subplots(2, 2, sharex=True, figsize=quad_figsize)
 
         ax1, ax3, ax2, ax4 = axs.ravel()
 
-        ax1.plot(dfim[px], dfim[py], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
-        ax1.plot(dfsm[px], dfsm[py], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
+        ax1.plot(dfim[px], dfim[py], linestyle=ls_i, marker=mrk_i, ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
+        ax1.plot(dfsm[px], dfsm[py], linestyle=ls_s, marker=mrk_s, ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
         ax1.set_ylabel(ylbl_cm)
         ax1.set_ylim(ylim_cm)
         ax1.set_yticks(yticks_cm)
         ax1.legend(loc='lower left', bbox_to_anchor=(0, 1.0), ncol=3)
 
-        ax2.plot(dfim[px], dfim[pyb], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
-        ax2.plot(dfsm[px], dfsm[pyb], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
+        ax2.plot(dfim[px], dfim[pyb], linestyle=ls_i, marker=mrk_i, ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
+        ax2.plot(dfsm[px], dfsm[pyb], linestyle=ls_s, marker=mrk_s, ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
         ax2.set_ylabel(ylbl_phi)
         ax2.set_ylim(ylim_phi)
         ax2.set_yticks(yticks_phi)
         ax2.set_xlabel(xlbl)
         ax2.set_xticks(xticks)
 
-        ax3.plot(dfirt[px1], dfirt[py12], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
-        ax3.plot(dfsrt[px1], dfsrt[py12], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
+        ax3.plot(dfirt[px1], dfirt[py12], linestyle=ls_i, marker=mrk_i, ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
+        ax3.plot(dfsrt[px1], dfsrt[py12], linestyle=ls_s, marker=mrk_s, ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
         ax3.set_ylabel(ylbl_rmse_xy)
 
-        ax4.plot(dfim[px], dfim[py4], '-o', ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
-        ax4.plot(dfsm[px], dfsm[py4], '-o', ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
+        ax4.plot(dfim[px], dfim[py4], linestyle=ls_i, marker=mrk_i, ms=ms, color=clr_i, label=lgnd_i, zorder=zorder_i)
+        ax4.plot(dfsm[px], dfsm[py4], linestyle=ls_s, marker=mrk_s, ms=ms, color=clr_s, label=lgnd_s, zorder=zorder_s)
         ax4.set_xlabel(xlbl)
         ax4.set_xticks(xticks)
         ax4.set_ylabel(ylbl_rmse_z)
 
         plt.tight_layout()
-        plt.subplots_adjust(hspace=0.3, wspace=0.3)  # hspace=0.175, wspace=0.25
+        plt.subplots_adjust(hspace=quad_hspace, wspace=quad_wspace)
 
-        plt.savefig(join(path_results, 'Figure 3 - Comparison of measurement performance.png'), dpi=300)
+        plt.savefig(join(path_results, 'Figure 3 - Comparison of measurement performance' + fig_extension),
+                    dpi=fig_dpi, facecolor='white')
         plt.close()
 
     if plot_figure_4:
 
         # get inputs
-        correct_field_dependent_effects = False
         microns_per_pixel = dict_inputs['microns_per_pixel']
 
         # LOAD DATA
@@ -1530,10 +1548,25 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             if zt < 35 or zt > 40:
                 continue
 
-            fig, axs = plt.subplots(2, 2,
+            ls_i = '-'
+            ls_s = '--'
+            mrk_i = 'o'
+            mrk_s = 's'
+            fs_i = 'none'
+            fs_s = 'none'
+            quad_figsize = quad_figsize2
+            quad_hspace = quad_hspace2
+            quad_wspace = quad_wspace2
+
+            """fig, axs = plt.subplots(2, 2,
                                     figsize=(size_x_inches * 2.175, size_y_inches * 1.25),
                                     sharex=False, layout='constrained',
-                                    gridspec_kw={'wspace': 0.15, 'hspace': 0.125})
+                                    gridspec_kw={'wspace': 0.15, 'hspace': 0.125})"""
+            fig, axs = plt.subplots(2, 2,
+                                    figsize=quad_figsize,
+                                    sharex=False, layout='constrained',
+                                    gridspec_kw={'wspace': quad_wspace, 'hspace': quad_hspace})
+
             ax1, ax2, ax3, ax4 = axs.ravel()
             ax_idpt = ax1
             ax_spct = ax3
@@ -1546,7 +1579,8 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             clrs = iter(cm.Spectral_r(np.linspace(0, 1, len(zts))))
             norm = mpl.colors.Normalize(vmin=np.min(zts), vmax=np.max(zts))
             cmap = 'Spectral_r'
-            fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax_parabola, label=r'$z \: (\mu m)$')
+            fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax_parabola, pad=-0.1,
+                         label=r'$z \: (\mu m)$')
 
             # --- plot particle positions and parabola for one z_nominal
 
@@ -1563,11 +1597,27 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             fr = np.linspace(0, np.max(pr))
             fz = fit_parabola_ab(fr, az, bz)
 
+            ls_i = '-'
+            ls_s = '--'
+            mrk_i = '.'
+            mrk_s = 'x'
+            fs_i = 'none'
+            fs_s = 'none'
+
+            epsilon_xlim = [-45, 870]
+            epsilon_xticks = [0, 200, 400, 600, 800]
+
             # plot
-            p_idpt, = ax_z.plot(dfiz['r'] * microns_per_pixel, dfiz['z'], 'o', ms=2, color=sciblue, label='IDPT')
-            p_spct, = ax_z.plot(dfsz['r'] * microns_per_pixel, dfsz['z'], 'o', ms=2, color=scigreen, label='SPCT')
+            p_idpt, = ax_z.plot(dfiz['r'] * microns_per_pixel, dfiz['z'],
+                                ms=2, marker=mrk_i, fillstyle=fs_i, linestyle='none', color=sciblue,
+                                label='IDPT')
+            p_spct, = ax_z.plot(dfsz['r'] * microns_per_pixel, dfsz['z'],
+                                ms=2, marker=mrk_s, fillstyle=fs_s, linestyle='none', color=scigreen,
+                                label='SPCT')
             p_sub = ax_z.axhline(bz, color='gray', linestyle='--', label=r'$z_{substrate}$')
             ax_z.set_ylabel(r'$z \: (\mu m)$')
+            ax_z.set_xlim(epsilon_xlim)
+            ax_z.set_xticks(epsilon_xticks)
             ax_z.tick_params(axis="x", labelbottom=False)
             ax_z_ylim = ax_z.get_ylim()
 
@@ -1594,9 +1644,11 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             for a_z, b_z, rmax_z in zip(all_as, all_bs, all_rmaxs):
                 fr = np.linspace(0, rmax_z)
                 fz = fit_parabola_ab(fr, a_z, 0)
-                p1, = ax_parabola.plot(fr, fz, color=next(clrs), label=int(np.round(zt, 0)))
-            ax_parabola.set_xlabel(r'$r \: (\mu m)$')
+                p1, = ax_parabola.plot(fr, fz, linestyle='-', color=next(clrs), label=int(np.round(zt, 0)))
             ax_parabola.set_ylabel(r'$\epsilon_{z}(r) \: (\mu m)$')
+            ax_parabola.set_xlim(epsilon_xlim)
+            ax_parabola.set_xticks(epsilon_xticks)
+            ax_parabola.set_xlabel(r'$r \: (\mu m)$')
             ax_parabola.text(0.05, 0.89, 'SPCT',
                              horizontalalignment='left', verticalalignment='top', transform=ax_parabola.transAxes)
 
@@ -1608,19 +1660,33 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
 
             # plot
             clrs = ['black', 'blue', 'red']
+            mrks = ['o', 's', '^']
+            lss = ['solid', 'dashed', 'dotted']
+            sigma_ylim = [0, 3.1]
+            sigma_yticks = [0, 1, 2, 3]
+            sigma_xlim = [-54, 57]
+            sigma_xticks = [-50, -25, 0, 25, 50]
 
             for i, bin_r in enumerate(dfim.bin_tl.unique()):
                 dfibr = dfim[dfim['bin_tl'] == bin_r]
-                ax_idpt.plot(dfibr.bin_ll, dfibr['rmse_z'], '-o', ms=4, color=clrs[i], label=int(np.round(bin_r, 0)))
+                ax_idpt.plot(dfibr.bin_ll, dfibr['rmse_z'],
+                             ms=4, marker=mrks[i], linestyle=lss[i], color=clrs[i],
+                             label=int(np.round(bin_r, 0)))
 
                 dfsbr = dfsm[dfsm['bin_tl'] == bin_r]
-                ax_spct.plot(dfsbr.bin_ll, dfsbr['rmse_z'], '-o', ms=4, color=clrs[i], label=int(np.round(bin_r, 0)))
+                ax_spct.plot(dfsbr.bin_ll, dfsbr['rmse_z'],
+                             ms=4, marker=mrks[i], linestyle=lss[i], color=clrs[i],
+                             label=int(np.round(bin_r, 0)))
 
             ax_idpt.set_ylabel(r'$\sigma_{z}^{\delta}(z) \: (\mu m)$')
-            ax_idpt.set_ylim([0, 3.1])
-            ax_idpt.set_yticks([0, 1, 2, 3])
+            ax_idpt.set_ylim(sigma_ylim)
+            ax_idpt.set_yticks(sigma_yticks)
+            ax_idpt.set_xlim(sigma_xlim)
+            ax_idpt.set_xticks(sigma_xticks)
+            ax_idpt.tick_params(axis="x", labelbottom=False)
 
-            ax_idpt.legend(loc='lower left', bbox_to_anchor=(0.05, 1.0), ncol=3, title=r'$r^{\delta} \: (\mu m)$')
+            ax_idpt.legend(loc='lower left', bbox_to_anchor=(0.01, 1.0), ncol=3, columnspacing=1.25,
+                           title=r'$r^{\delta} \: (\mu m)$')
             """ax_idpt.legend(loc='upper right', title=r'$r^{\delta} \: (\mu m)$', # ncol=3,
                            markerscale=0.8, borderpad=0.3, handlelength=1.2, handletextpad=0.6,
                            labelspacing=0.25, columnspacing=1.5)"""
@@ -1628,23 +1694,17 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
                          horizontalalignment='left', verticalalignment='top', transform=ax_idpt.transAxes)
 
             ax_spct.set_ylabel(r'$\sigma_{z}^{\delta}(z) \: (\mu m)$')
-            ax_spct.set_ylim([0, 3.1])
-            ax_spct.set_yticks([0, 1, 2, 3])
+            ax_spct.set_ylim(sigma_ylim)
+            ax_spct.set_yticks(sigma_yticks)
             ax_spct.set_xlabel(r'$z \: (\mu m)$')
-            ax_spct.set_xticks([-50, -25, 0, 25, 50])
+            ax_spct.set_xlim(sigma_xlim)
+            ax_spct.set_xticks(sigma_xticks)
             ax_spct.text(0.05, 0.89, 'SPCT',
                          horizontalalignment='left', verticalalignment='top', transform=ax_spct.transAxes)
 
-            ax_idpt.tick_params(axis="x", labelbottom=False)
-
-            # ---
-
-            # ref: https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html
-            # fig.set(w_pad=4 / 72, h_pad=4 / 72, hspace=0.2, wspace=0.2)
-            # .get_layout_engine()
-
-            plt.savefig(join(path_results, 'Figure 4 - Field-dependent effects at z={}.png'.format(np.round(zt, 2))),
-                        dpi=300, facecolor='white')
+            plt.savefig(join(path_results, 'Figure 4 - Field-dependent effects at z={}{}'.format(np.round(zt, 2),
+                                                                                                 fig_extension)),
+                        dpi=fig_dpi, facecolor='white')
             plt.close()
 
 
@@ -1817,6 +1877,45 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
             plt.savefig(join(path_results, '{}_focal-plane-bias-errors_by_z.png'.format(method)))
             plt.close()
 
+        # export count and percent by outlier type
+        sum_outliers = 0
+        res = []
+        for k, v in dict_outliers.items():
+            # count cmin, errz, errxy outliers
+            res.append([k, len(v['df'])])
+            # count errz focal plane bias errors and other
+            if k == 'errz':
+                df = v['df']
+                dfpb = df[(df['z_calib'] > 0) & (df['z_no_corr'] < 0) | (df['z_calib'] < 0) & (df['z_no_corr'] > 0)]
+                res.append(['errz_fpb', len(dfpb)])
+                df = df[(df['z_calib'] > 0) & (df['z_no_corr'] > 0) | (df['z_calib'] < 0) & (df['z_no_corr'] < 0)]
+                res.append(['errz_other', len(df)])
+
+            # sum outliers of all types
+            sum_outliers += len(v['df'])
+
+        # count total number of particles identified
+        total_num_identified = len(dict_data['aligned'][method.upper()])
+        res.append(['num_identified', total_num_identified])
+
+        # count total number of outliers
+        res.append(['total_num_outliers', sum_outliers])
+
+        # count total number of particles measured
+        total_num_measured = total_num_identified - sum_outliers
+        res.append(['num_measured', total_num_measured])
+
+        # count true number of particles
+        total_num_particles = dict_inputs['num_frames_total'] * dict_inputs['true_num_particles_per_frame']
+        res.append(['true_num', total_num_particles])
+
+        # export
+        df = pd.DataFrame(np.array(res), columns=['group', 'counts'])
+        df = df.astype({'group': str, 'counts': int})
+        df['percent_num_meas'] = np.round(df['counts'] / total_num_measured * 100, 1)
+        df['percent_true_num'] = np.round(df['counts'] / total_num_particles * 100, 1)
+        df.to_excel(join(path_results, '{}_percent_outliers_by_type.xlsx'.format(method)), index=False)
+
     # ---
 
     if dict_plots['supfigs']['hist_z']:
@@ -1976,7 +2075,7 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
             # --- global-averaged rmse-z
             dfcm = df[df['cm'] > c_min]
             num_p = len(dfcm)
-            errors = df[col_error_z].to_numpy()
+            errors = dfcm[col_error_z].to_numpy()
             sq_errors = np.square(errors)
             mean_sq_errors = np.mean(sq_errors)
             rmse_global_average = np.sqrt(mean_sq_errors)
@@ -1988,7 +2087,7 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
         res = pd.DataFrame(np.vstack([c_mins, rmse_depth_averageds, rmse_global_averages, num_particless]).T,
                            columns=['cmin', 'rmse_z_da', 'rmse_z_ga', 'num_meas'])
         res['percent_meas'] = res['num_meas'] / num_particles_total
-        res['avg_num_meas_by_z'] = res['percent_meas'] / num_frames_total
+        res['avg_num_meas_by_z'] = res['num_meas'] / num_frames_total
         res.to_excel(join(path_results, '{}_rmse-z_by_c-min.xlsx'.format(method)))
 
         fig, ax = plt.subplots(figsize=(size_x_inches / 1.25, size_y_inches / 1.5))
@@ -2232,16 +2331,35 @@ if __name__ == '__main__':
     DICT_PLOTS = {
         'dataset_alignment': True,
         'fit_plane':
-            {'z_corr_valid': True, 'z_raw_valid': True, 'z_raw_all': True, 'fit_accuracy': True},
+            {'z_corr_valid': True,
+             'z_raw_valid': True,
+             'z_raw_all': True,
+             'fit_accuracy': True,
+             },
         'local_rmse_z':
-            {'bin_z': True, 'bin_r': True, 'bin_r_z': True},
+            {'bin_z': True,
+             'bin_r': True,
+             'bin_r_z': True,
+             },
         'fit_rt_accuracy': True,
         'field_dependent_effects':
-            {'plot_each_z': True, 'plot_overlay': True, 'plot_shape_change': True, 'plot_mean_z_per_pid': False},
-        'pubfigs': {'Figure3': True, 'Figure4': True},
+            {'plot_each_z': True,
+             'plot_overlay': True,
+             'plot_shape_change': True,
+             'plot_mean_z_per_pid': False,
+             },
+        'pubfigs': {'Figure3': False,
+                    'Figure4': True,
+                    },
         'supfigs':
-            {'Figure3_GDPT': True, 'outliers': True, 'hist_z': True, 'hist_xy': True,
-             'rmse_z_by_cmin': False, 'compare_calibration_particle': False, 'asymmetric_similarity': False,}
+            {'Figure3_GDPT': False,
+             'outliers': False,
+             'hist_z': False,
+             'hist_xy': False,
+             'rmse_z_by_cmin': True,
+             'compare_calibration_particle': False,
+             'asymmetric_similarity': False,
+             }
     }
 
     DICT_DATA = {
@@ -2254,7 +2372,7 @@ if __name__ == '__main__':
     }
 
     USE_XY_UNITS = 'microns'
-
+    """
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # ALIGN DATASETS IN X, Y, Z
@@ -2310,7 +2428,7 @@ if __name__ == '__main__':
                                          dict_paths=DICT_PATHS,
                                          dict_plots=DICT_PLOTS,
                                          )
-
+    """
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # PLOT FIGURES RELATED TO PUBLICATION
@@ -2319,7 +2437,7 @@ if __name__ == '__main__':
                  dict_paths=DICT_PATHS,
                  dict_plots=DICT_PLOTS,
                  )
-
+    raise ValueError()
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # PLOT FIGURES RELATED TO SUPPLEMENTARY INFORMATION

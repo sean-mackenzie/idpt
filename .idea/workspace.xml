@@ -3,6 +3,12 @@
   <component name="ChangeListManager">
     <list default="true" id="393691cb-326b-4c18-b8ab-bd44c63fb764" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/analyses/outputs/custom/custom_compare-global-to-depth-averaged_performance_w_GDPT.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/analyses/outputs/custom/custom_compare-global-to-depth-averaged_performance_w_GDPT.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/analyses/outputs/custom/~$custom_compare-global-to-depth-averaged_performance_w_GDPT.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/analyses/outputs/pubfigs/Figure 4 - Field-dependent effects at z=36.9.png" beforeDir="false" afterPath="$PROJECT_DIR$/publication/analyses/outputs/pubfigs/Figure 4 - Field-dependent effects at z=36.9.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/analyses/outputs/supfigs/gdpt_rmse-z_by_c-min.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/analyses/outputs/supfigs/gdpt_rmse-z_by_c-min.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/analyses/outputs/supfigs/idpt_rmse-z_by_c-min.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/analyses/outputs/supfigs/idpt_rmse-z_by_c-min.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/analyses/outputs/supfigs/spct_rmse-z_by_c-min.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/analyses/outputs/supfigs/spct_rmse-z_by_c-min.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/publication/compare_idpt_spct_gdpt.py" beforeDir="false" afterPath="$PROJECT_DIR$/publication/compare_idpt_spct_gdpt.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -153,6 +159,12 @@
       <workItem from="1723762097550" duration="7511000" />
       <workItem from="1723772417651" duration="5932000" />
       <workItem from="1723780633864" duration="7072000" />
+      <workItem from="1723842471538" duration="2561000" />
+      <workItem from="1723853834246" duration="959000" />
+      <workItem from="1723856813151" duration="378000" />
+      <workItem from="1723858050156" duration="573000" />
+      <workItem from="1724135701468" duration="620000" />
+      <workItem from="1724987888717" duration="4668000" />
     </task>
     <servers />
   </component>
@@ -185,6 +197,6 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/idpt$generate_results.coverage" NAME="generate_results Coverage Results" MODIFIED="1718171404739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
     <SUITE FILE_PATH="coverage/idpt$rigid_transformations_from_focus.coverage" NAME="rigid_transformations_from_focus Coverage Results" MODIFIED="1723542299247" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication/analyses" />
-    <SUITE FILE_PATH="coverage/idpt$compare_idpt_spct_gdpt.coverage" NAME="compare_idpt_spct_gdpt Coverage Results" MODIFIED="1723788955169" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
+    <SUITE FILE_PATH="coverage/idpt$compare_idpt_spct_gdpt.coverage" NAME="compare_idpt_spct_gdpt Coverage Results" MODIFIED="1724992839873" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
   </component>
 </project>
