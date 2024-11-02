@@ -439,6 +439,8 @@ def regularize_coordinates_between_image_sets(df, r0):
     # make radial coordinate
     df['r'] = np.sqrt((df['x'] - r0[0]) ** 2 + (df['y'] - r0[1]) ** 2)
 
+    a = 1
+
     return df
 
 

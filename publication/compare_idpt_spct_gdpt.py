@@ -12,7 +12,13 @@ from publication.analyses.utils.rigid_transformations import rigid_transforms_fr
 import matplotlib as mpl
 from matplotlib.pyplot import cm
 
-mpl.use('TkAgg')
+""" NOTE: is the below backend causing .svg to render incorrectly? """
+# mpl.use('TkAgg')
+""" I needed to include it in order to plot figures to PyCharg GUI. """
+
+""" NOTE below: using 'SVG' fails to output a vector graphics file. Only PDF seems to work"""
+mpl.use('PDF')
+
 import matplotlib.pyplot as plt
 
 import scienceplots
@@ -37,12 +43,20 @@ scired = '#FF2C00'
 sciorange = '#FF9500'
 
 plt.style.use(['science', 'ieee'])  # 'ieee', 'std-colors'
+plt.rcParams.update({
+    "font.family": "serif",   # specify font family here
+    "font.serif": ["Times"],  # specify font here
+    "mathtext.fontset" : "stix",  # SciencePlots default: "dejavuserif"; Other: "stix"
+    "font.size": 8,
+    "figure.dpi": "600",
+})
+# "text.latex.preamble" : r"\usepackage{upgreek} \usepackage{txfonts}"
+##                          \upmu (non-italic mu)   \muup (non-italic mu)   (two different versions)
 fig, ax = plt.subplots()
 size_x_inches, size_y_inches = fig.get_size_inches()
 plt.close(fig)
-fig_extension = '.svg'
-fig_dpi = 600
-
+fig_extension = '.pdf'
+fig_dpi = 1200
 
 # --- HELPER FUNCTIONS
 
@@ -1425,11 +1439,11 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
         clr_i = sciblue
         clr_s = scigreen
         lgnd_i = 'IDPT'
-        lgnd_s = 'SPCT'
+        lgnd_s = 'GDPT'
         zorder_i, zorder_s = 3.5, 3.3
 
         ms = 4
-        xlbl = r'$z \: (\mu m)$'
+        xlbl = r'$z \: \mathrm{(\mu m)}$'
         xticks = [-50, -25, 0, 25, 50]
 
         # -
@@ -1446,16 +1460,16 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
         px1 = 'z'
         py12 = 'rmse_xy'
 
-        ylbl_cm = r'$\overline{c_{m}}(z)$'
+        ylbl_cm = r'$\overline{c_{\mathrm{m}}}(z)$'
         ylim_cm = [0.71, 1.02]  # data range: [0.7, 1.0]
         yticks_cm = [0.8, 0.9, 1.0]  # data ticks: np.arange(0.75, 1.01, 0.05)
 
-        ylbl_phi = r"$\overline{N'_{p}}(z)/N_{p}$"
+        ylbl_phi = r"$\overline{N'_{\mathrm{p}}}(z)/N_{\mathrm{p}}$"
         ylim_phi = [0, 1.1]
         yticks_phi = [0, 0.5, 1]
 
-        ylbl_rmse_xy = r'$\sigma_{xy}(z) \: (\mu m)$'
-        ylbl_rmse_z = r'$\sigma_{z}(z) \: (\mu m)$'
+        ylbl_rmse_xy = r'$\sigma_{xy}(z) \: \mathrm{(\mu m)}$'
+        ylbl_rmse_z = r'$\sigma_{z}(z) \: \mathrm{(\mu m)}$'
 
         ls_i = '-'
         ls_s = '--'
@@ -1499,7 +1513,7 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
         plt.subplots_adjust(hspace=quad_hspace, wspace=quad_wspace)
 
         plt.savefig(join(path_results, 'Figure 3 - Comparison of measurement performance' + fig_extension),
-                    dpi=fig_dpi, facecolor='white')
+                    format=fig_extension[1:], dpi=fig_dpi, facecolor='white')
         plt.close()
 
     if plot_figure_4:
@@ -1580,7 +1594,7 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             norm = mpl.colors.Normalize(vmin=np.min(zts), vmax=np.max(zts))
             cmap = 'Spectral_r'
             fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax_parabola, pad=-0.1,
-                         label=r'$z \: (\mu m)$')
+                         label=r'$z \: \mathrm{(\mu m)}$')
 
             # --- plot particle positions and parabola for one z_nominal
 
@@ -1601,7 +1615,7 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             ls_s = '--'
             mrk_i = '.'
             mrk_s = 'x'
-            fs_i = 'none'
+            fs_i = 'full'
             fs_s = 'none'
 
             epsilon_xlim = [-45, 870]
@@ -1613,9 +1627,9 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
                                 label='IDPT')
             p_spct, = ax_z.plot(dfsz['r'] * microns_per_pixel, dfsz['z'],
                                 ms=2, marker=mrk_s, fillstyle=fs_s, linestyle='none', color=scigreen,
-                                label='SPCT')
-            p_sub = ax_z.axhline(bz, color='gray', linestyle='--', label=r'$z_{substrate}$')
-            ax_z.set_ylabel(r'$z \: (\mu m)$')
+                                label='GDPT')
+            # p_sub = ax_z.axhline(bz, color='gray', linestyle='--', label=r'$z_{\mathrm{substrate}}$')
+            ax_z.set_ylabel(r'$z \: \mathrm{(\mu m)}$')
             ax_z.set_xlim(epsilon_xlim)
             ax_z.set_xticks(epsilon_xticks)
             ax_z.tick_params(axis="x", labelbottom=False)
@@ -1625,15 +1639,15 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             """z_legend = ax_z.legend(handles=[p_idpt, p_spct, p_sub],
                                    ncol=3, loc='lower left', bbox_to_anchor=(0.0, 1.0), borderpad=0.05,
                                    handlelength=1.2, handletextpad=0.3, labelspacing=0.3, columnspacing=1)"""
-            z_legend = ax_z.legend(handles=[p_idpt, p_spct, p_sub], loc='lower left',
-                                   handlelength=1.5, handletextpad=0.4, labelspacing=0.4)
+            z_legend = ax_z.legend(handles=[p_idpt, p_spct], loc='lower left',
+                                   handlelength=1.5, handletextpad=0.4, labelspacing=0.4, markerscale=1.5)
             ax_z.add_artist(z_legend)
 
             # legend: z-error-coordinates
             ax_zerr = ax_z.twinx()
             p_errz, = ax_zerr.plot(fr, fz - bz, color=clr_ex_errz, label=r'$\epsilon_{z}(r)$')
             ax_zerr.set_ylim([ax_z_ylim[0] - bz, ax_z_ylim[1] - bz])
-            ax_zerr.set_ylabel(r'$\epsilon_{z} \: (\mu m)$')
+            ax_zerr.set_ylabel(r'$\epsilon_{z} \: \mathrm{(\mu m)}$')
             ax_zerr.legend(loc='lower right', bbox_to_anchor=(1.0, 1.0))  # , borderpad=0.05, handlelength=1.2)
 
             # --- plot parabolas across all z's
@@ -1645,11 +1659,11 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
                 fr = np.linspace(0, rmax_z)
                 fz = fit_parabola_ab(fr, a_z, 0)
                 p1, = ax_parabola.plot(fr, fz, linestyle='-', color=next(clrs), label=int(np.round(zt, 0)))
-            ax_parabola.set_ylabel(r'$\epsilon_{z}(r) \: (\mu m)$')
+            ax_parabola.set_ylabel(r'$\epsilon_{z}(r) \: \mathrm{(\mu m)}$')
             ax_parabola.set_xlim(epsilon_xlim)
             ax_parabola.set_xticks(epsilon_xticks)
-            ax_parabola.set_xlabel(r'$r \: (\mu m)$')
-            ax_parabola.text(0.05, 0.89, 'SPCT',
+            ax_parabola.set_xlabel(r'$r \: \mathrm{(\mu m)}$')
+            ax_parabola.text(0.05, 0.89, 'GDPT',
                              horizontalalignment='left', verticalalignment='top', transform=ax_parabola.transAxes)
 
             # --- 2d-bin by r and z
@@ -1678,7 +1692,7 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
                              ms=4, marker=mrks[i], linestyle=lss[i], color=clrs[i],
                              label=int(np.round(bin_r, 0)))
 
-            ax_idpt.set_ylabel(r'$\sigma_{z}^{\delta}(z) \: (\mu m)$')
+            ax_idpt.set_ylabel(r'$\sigma_{z}^{\delta}(z) \: \mathrm{(\mu m)}$')
             ax_idpt.set_ylim(sigma_ylim)
             ax_idpt.set_yticks(sigma_yticks)
             ax_idpt.set_xlim(sigma_xlim)
@@ -1686,25 +1700,26 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             ax_idpt.tick_params(axis="x", labelbottom=False)
 
             ax_idpt.legend(loc='lower left', bbox_to_anchor=(0.01, 1.0), ncol=3, columnspacing=1.25,
-                           title=r'$r^{\delta} \: (\mu m)$')
+                           title=r'$r^{\delta} \: \mathrm{(\mu m)}$')
             """ax_idpt.legend(loc='upper right', title=r'$r^{\delta} \: (\mu m)$', # ncol=3,
                            markerscale=0.8, borderpad=0.3, handlelength=1.2, handletextpad=0.6,
                            labelspacing=0.25, columnspacing=1.5)"""
             ax_idpt.text(0.05, 0.89, 'IDPT',
                          horizontalalignment='left', verticalalignment='top', transform=ax_idpt.transAxes)
 
-            ax_spct.set_ylabel(r'$\sigma_{z}^{\delta}(z) \: (\mu m)$')
+            ax_spct.set_ylabel(r'$\sigma_{z}^{\delta}(z) \: \mathrm{(\mu m)}$')
             ax_spct.set_ylim(sigma_ylim)
             ax_spct.set_yticks(sigma_yticks)
-            ax_spct.set_xlabel(r'$z \: (\mu m)$')
+            ax_spct.set_xlabel(r'$z \: \mathrm{(\mu m)}$')
             ax_spct.set_xlim(sigma_xlim)
             ax_spct.set_xticks(sigma_xticks)
-            ax_spct.text(0.05, 0.89, 'SPCT',
+            ax_spct.text(0.05, 0.89, 'GDPT',
                          horizontalalignment='left', verticalalignment='top', transform=ax_spct.transAxes)
 
-            plt.savefig(join(path_results, 'Figure 4 - Field-dependent effects at z={}{}'.format(np.round(zt, 2),
+            plt.savefig(join(path_results,
+                             'Figure 4 - Field-dependent effects at z_nominal={}{}'.format(np.round(zt, 2),
                                                                                                  fig_extension)),
-                        dpi=fig_dpi, facecolor='white')
+                        format=fig_extension[1:], dpi=fig_dpi, facecolor='white')
             plt.close()
 
 
@@ -2348,7 +2363,7 @@ if __name__ == '__main__':
              'plot_shape_change': True,
              'plot_mean_z_per_pid': False,
              },
-        'pubfigs': {'Figure3': False,
+        'pubfigs': {'Figure3': True,
                     'Figure4': True,
                     },
         'supfigs':
@@ -2372,9 +2387,10 @@ if __name__ == '__main__':
     }
 
     USE_XY_UNITS = 'microns'
-    """
+
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
+
     # ALIGN DATASETS IN X, Y, Z
     DICT_DATA = align_datasets(dict_data=DICT_DATA,
                                dict_inputs=DICT_INPUTS,
@@ -2382,7 +2398,7 @@ if __name__ == '__main__':
                                dict_plots=DICT_PLOTS,
                                make_xy_units=USE_XY_UNITS,
                                )
-
+    """
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # FIT 3D PLANE TO CORRECT FOR STAGE TILT + VARIATIONS IN MICROMETER DISPLACEMENT
