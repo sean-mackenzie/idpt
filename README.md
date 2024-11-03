@@ -2,7 +2,7 @@
 # IDPT: Individualized Defocusing Particle Tracking
 
 ## Overview
-IDPT (Individualized Defocusing Particle Tracking) is a 3D particle tracking software packaged for dynamic surface profilometry and strain field measurement. The repository provides a practical example and ready-to-use scripts for those interested in using the software.
+IDPT (Individualized Defocusing Particle Tracking) is a 3D particle tracking software package for dynamic surface profilometry and strain field measurement. The repository provides a practical example and ready-to-use scripts for those interested in using the software.
 
 ## Installation
 
