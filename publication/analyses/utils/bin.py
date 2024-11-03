@@ -243,6 +243,14 @@ def map_lists_a_to_b(a, b):
 
 
 def sample_array_at_intervals(arr_to_sample, bins, bin_width, nearest_sample_to_bin=True):
+    """
+
+    :param arr_to_sample:
+    :param bins:
+    :param bin_width:
+    :param nearest_sample_to_bin:
+    :return:
+    """
     # ensure numpy array
     if isinstance(arr_to_sample, list):
         arr_to_sample = np.array(arr_to_sample)

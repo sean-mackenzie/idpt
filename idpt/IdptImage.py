@@ -1,22 +1,12 @@
 # IdptImage.py
 
-from os.path import join
-
 from skimage import io
-from skimage.filters import median, gaussian, roberts, sobel
-
-from skimage.exposure import rescale_intensity
 from skimage.measure import regionprops_table
-
-from scipy.signal import convolve2d
-
 import numpy as np
-import numpy.ma as ma
 import pandas as pd
 from idpt.utils.particle_identification import apply_threshold, identify_contours, pad_and_center_region
 from .IdptParticle import IdptParticle
 from os.path import isfile, basename
-import time
 import logging
 
 logger = logging.getLogger()
@@ -70,6 +60,11 @@ class IdptImage(object):
         self._raw = img
 
     def crop_image(self, crop_specs):
+        """
+
+        :param crop_specs:
+        :return:
+        """
         valid_crops = ['xmin', 'xmax', 'ymin', 'ymax', 'pad']
         for crop_func in crop_specs.keys():
             if crop_func not in valid_crops:
@@ -91,12 +86,25 @@ class IdptImage(object):
                                mode='constant', constant_values=np.min(self._raw))
 
     def subtract_background(self, background_subtraction, background_img):
+        logger.warning("No background subtraction methods have been implemented.")
         pass
 
     def preprocess_image(self, filterspecs):
+        logger.warning("No filtering methods have been implemented. "
+                       "Filtered image set to raw image.")
         self._filtered = self._raw
 
     def _add_particle(self, id_, contour, bbox, particle_mask, location, template_use_raw):
+        """
+
+        :param id_:
+        :param contour:
+        :param bbox:
+        :param particle_mask:
+        :param location:
+        :param template_use_raw:
+        :return:
+        """
         if template_use_raw:
             img = self._raw
         else:
@@ -109,6 +117,16 @@ class IdptImage(object):
 
     def identify_particles(self, collection, particle_id_image, thresh_specs,
                            min_size, max_size, padding):
+        """
+
+        :param collection:
+        :param particle_id_image:
+        :param thresh_specs:
+        :param min_size:
+        :param max_size:
+        :param padding:
+        :return:
+        """
         show_threshold = False
         # b/c static templates
         particle_mask = apply_threshold(img=particle_id_image,
@@ -128,8 +146,6 @@ class IdptImage(object):
                                              )
                            )
 
-        # ---
-
         # filters regions (contours)
         # old
         skipped_contours = []
@@ -140,8 +156,6 @@ class IdptImage(object):
         passing_labels = []
         passing_regions = []
         passing_contours = []
-
-        # ---
 
         # Sort contours and bboxes by x-coordinate:
         for region, contour_coords in sorted(zip(regions, all_contour_coords), key=lambda x: x[0].centroid[1]):
@@ -183,14 +197,14 @@ class IdptImage(object):
                     # NOTE: the constant 0.1 used to be 0.5
                     skipped_contours.append(region.label)
                     if self.frame == 0:
-                        print("FIRST FILTER: Skipped because template + padding near the image borders")
+                        logger.warning("FIRST FILTER: Skipped because sub-image bounding box near the image borders")
                     continue
                 elif bbox[0] + bbox[2] + padding * 0.1 >= self.shape[1] or bbox[1] + bbox[3] + padding * 0.1 >= \
                         self.shape[0]:
                     # NOTE: the constant 0.1 used to be 0.5
                     skipped_contours.append(region.label)
                     if self.frame == 0:
-                        print("SECOND FILTER: Skipped because template + padding near the image borders")
+                        logger.warning("SECOND FILTER: Skipped because sub-image bounding box near the image borders")
                     continue
 
             # Add contour
@@ -218,6 +232,13 @@ class IdptImage(object):
         logger.info("Identified {} particles in baseline image {}".format(len(passing_labels), self.filename))
 
     def extract_particle_sub_images(self, collection, padding, template_use_raw):
+        """
+
+        :param collection:
+        :param padding:
+        :param template_use_raw:
+        :return:
+        """
 
         if collection.baseline_regions is None:
             raise ValueError("Must identify particles in baseline image before sub-image extraction.")
@@ -234,7 +255,8 @@ class IdptImage(object):
             cX = int(np.round(df[df['label'] == region.label]['weighted_centroid-1'].item(), 0))
             cY = int(np.round(df[df['label'] == region.label]['weighted_centroid-0'].item(), 0))
 
-            # adjust the bounding box (bbox) to work with IdptParticle (note: x0, y0, w0, h0 = self.bbox)
+            # adjust the bounding box (bbox) to work with IdptParticle
+            # (note: x0, y0, w0, h0 = self.bbox)
             min_row, min_col, max_row, max_col = region.bbox
             bbox = (min_col, min_row, max_col - min_col, max_row - min_row)
 
@@ -249,9 +271,11 @@ class IdptImage(object):
         assert isinstance(z, float)
         # set the z-value of the image
         self._z = z
-        # If the image is set to be at a certain height, all the particles' true_z are assigned that height
+        # If the image is set to be at a certain height,
+        # all the particles' true_z are assigned that height
         for particle in self.particles:
-            # only set particle z-coordinate if it hasn't already been set
+            # only set particle z-coordinate if
+            # it hasn't already been set
             if particle.z is None:
                 particle.set_z(z)
 

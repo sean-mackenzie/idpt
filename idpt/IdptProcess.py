@@ -1,7 +1,8 @@
-from .IdptCalibrationModel import IdptCalibrationModel
-from .IdptCalibrationStack import IdptCalibrationStack
+# IdptProcess.py
+
 from .IdptImageCollection import IdptImageCollection
 from os.path import join
+import matplotlib.pyplot as plt
 
 
 class IdptProcess(object):
@@ -15,6 +16,10 @@ class IdptProcess(object):
         self.test_col = test_col
 
     def process(self):
+        """
+
+        :return:
+        """
         # calibration collection
         self.calib_col = IdptImageCollection(self.calib_settings.inputs.image_collection_type,
                                              self.calib_settings.inputs.image_path,
@@ -75,14 +80,18 @@ class IdptProcess(object):
         self.test_col.infer_z(self.calib_set).sknccorr(use_stack=None)
 
         coords = self.test_col.package_particle_positions()
-        coords.to_excel(join(self.test_settings.outputs.results_path, self.test_settings.outputs.save_id_string +
-                             '_test-coords.xlsx'), index=False)
+        coords.to_excel(
+            join(self.test_settings.outputs.results_path,
+                 self.test_settings.outputs.save_id_string +
+                 '_test-coords.xlsx'), index=False)
 
         coords_pdf = self.test_col.package_particle_positions_pdf()
-        coords_pdf.to_excel(join(self.test_settings.outputs.results_path, self.test_settings.outputs.save_id_string +
-                                 '_test-coords_pdf.xlsx'), index=False)
+        coords_pdf.to_excel(
+            join(self.test_settings.outputs.results_path,
+                 self.test_settings.outputs.save_id_string +
+                 '_test-coords_pdf.xlsx'), index=False)
 
-        import matplotlib.pyplot as plt
+        # plot z-trajectories
         fig, ax = plt.subplots(figsize=(10, 10))
         for pid in coords['id'].unique():
             df = coords[coords['id'] == pid]
@@ -90,6 +99,8 @@ class IdptProcess(object):
         ax.set_xlabel('frame')
         ax.set_ylabel('z_sub')
         plt.tight_layout()
-        plt.savefig(join(self.test_settings.outputs.results_path, self.test_settings.outputs.save_id_string +
-                         '_z-trajectories.png'), dpi=300)
+        plt.savefig(
+            join(self.test_settings.outputs.results_path,
+                 self.test_settings.outputs.save_id_string +
+                 '_z-trajectories.png'), dpi=300)
         plt.close()

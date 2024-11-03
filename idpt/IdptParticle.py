@@ -1,8 +1,7 @@
-import numpy as np
-import logging
-from idpt.utils import subresolution
+# IdptParticle.py
 
-logger = logging.getLogger(__name__)
+import numpy as np
+from idpt.utils import subresolution
 
 
 class IdptParticle(object):
@@ -18,8 +17,8 @@ class IdptParticle(object):
         self._bbox = bbox
         self._mask_on_image = particle_mask_on_image
         self._location = location
-        self.x_com = location[0]  # x-position via binarized contour's Center-of-Mass
-        self.y_com = location[1]  # y-position via binarized contour's Center-of-Mass
+        self.x_com = location[0]  # x-position nearest the binarized contour's Center-of-Mass
+        self.y_com = location[1]  # y-position nearest the binarized contour's Center-of-Mass
 
         self._template = None
         self._location_on_template = None
@@ -56,22 +55,25 @@ class IdptParticle(object):
         self.pdf_rmse = None
         self.pdf_r_squared = None
 
-        self._fit_2d_gaussian_on_particle_image(rotate_degrees=45)
+        self._fit_2d_gaussian_on_particle_image(rotate_degrees=45)  # rotation depend on experimental images
 
     def _create_template(self, bbox=None):
+        """
+
+        :param bbox:
+        :return:
+        """
         image = self._image
 
-        # if no bbox is passed in, use the particle.bbox variable
+        # if no bbox is passed in,
+        # use the particle.bbox variable
         if bbox is None:
-            x0, y0, w0, h0 = self.bbox
             x, y, w, h = self.bbox
         else:
-            x0, y0, w0, h0 = bbox
             x, y, w, h = bbox
 
-        orig_template = image[y: y + h, x: x + w]
-
-        # adjust the bounding box so it doesn't exceed the image bounds
+        # adjust the bounding box so it
+        # doesn't exceed the image bounds
         pad_x_m, pad_x_p, pad_y_m, pad_y_p = 0, 0, 0, 0
 
         if y + h > image.shape[0]:
@@ -89,15 +91,11 @@ class IdptParticle(object):
         pad_x = (pad_x_m, pad_x_p)
         pad_y = (pad_y_m, pad_y_p)
 
-        # if no padding is necessary, instantiate particle variables
+        # if no padding is necessary,
+        # instantiate particle variables
         if (pad_x == (0, 0)) and (pad_y == (0, 0)):
-
-            # new method using Silvan's framework
-            x0, y0, w0, h0 = self.bbox
-            orig_template = image[y: y + h, x: x + w]
             # set the template
             self._template = image[y: y + h, x: x + w]
-            #  [y - 1: y + h - 1, x - 1: x + w - 1] [y + 1: y + h + 1, x + 1: x + w + 1]
 
             # set mask on template
             self._mask_on_template = self.mask_on_image[y: y + h, x: x + w]
@@ -109,25 +107,18 @@ class IdptParticle(object):
             contr = np.squeeze(self.contour)
             self._template_contour = np.array([contr[:, 0] - x, contr[:, 1] - y]).T
 
-            # check if template is all nans
-            array_nans = np.isnan(self.template)
-            count_nans = np.sum(array_nans)
-
         else:
-            # from Silvan's original code
             tempy = image[y: y + h, x: x + w]
-
             template = np.pad(tempy.astype(np.float), (pad_y, pad_x),
                               'constant', constant_values=np.median(tempy))
-            # changed from: "'constant', np.nan)" on 7/23/2022
 
-            # the below are my additions
             # set the template
-            self._template = template  # image[yl:yr, xl:xr]
+            self._template = template
 
             # set mask on template
-            self._mask_on_template = np.pad(self.mask_on_image[y: y + h, x: x + w].astype(np.float), (pad_y, pad_x),
-                                            'constant', constant_values=0)  # changed from np.nan, 7/23/2022
+            self._mask_on_template = np.pad(self.mask_on_image[y: y + h, x: x + w].astype(np.float),
+                                            (pad_y, pad_x),
+                                            'constant', constant_values=0)
 
             # set particle center location on template
             self._location_on_template = (np.shape(template)[0] // 2, np.shape(template)[1] // 2)
@@ -136,13 +127,14 @@ class IdptParticle(object):
             contr = np.squeeze(self.contour)
             self._template_contour = np.array([contr[:, 0] - x, contr[:, 1] - y]).T
 
-            # check if template is all nans
-            array_nans = np.isnan(self.template)
-            count_nans = np.sum(array_nans)
-
         return self.template
 
     def _fit_2d_gaussian_on_particle_image(self, rotate_degrees=45):
+        """
+
+        :param rotate_degrees:
+        :return:
+        """
 
         dia_x_pdf, dia_y_pdf, A_pdf, yc_pdf, xc_pdf, sigmay_pdf, sigmax_pdf, rho, bkg = subresolution.fit_gaussian_calc_diameter(
             self._template,
@@ -159,7 +151,6 @@ class IdptParticle(object):
             self.pdf_sigma_x = sigmax_pdf
             self.pdf_rho = rho
 
-            # NOTE: the below is new (as of 10/22/2022)
             XYZ, fZ, rmse, r_squared, residuals = subresolution.evaluate_fit_2d_gaussian_on_image(img=self._template,
                                                                                                   fit_func='bivariate_pdf',
                                                                                                   popt=[A_pdf,
@@ -177,6 +168,12 @@ class IdptParticle(object):
         self._in_images = img_id
 
     def _dilated_bbox(self, dilation=None, dims=None):
+        """
+
+        :param dilation:
+        :param dims:
+        :return:
+        """
         if dims is None:
             w, h = self.bbox[2], self.bbox[3]
         else:
@@ -198,6 +195,11 @@ class IdptParticle(object):
         return dilated_bbox
 
     def _resized_bbox(self, resize=None):
+        """
+
+        :param resize:
+        :return:
+        """
         if resize is None:
             return self.bbox
         else:
@@ -211,6 +213,12 @@ class IdptParticle(object):
         self._create_template()
 
     def get_template(self, dilation=None, resize=None):
+        """
+
+        :param dilation:
+        :param resize:
+        :return:
+        """
         if dilation is None and resize is None:
             return self._create_template()
         elif dilation is not None and resize is None:
@@ -229,7 +237,7 @@ class IdptParticle(object):
 
     def reset_id(self, new_id):
         assert isinstance(new_id, int)
-        logger.warning("Particle ID {}: Reset ID to {}".format(self.id, new_id))
+        print("Particle ID {}: Reset ID to {}".format(self.id, new_id))
         self._id = new_id
 
     def set_inference_stack_id(self, stack):
@@ -253,12 +261,16 @@ class IdptParticle(object):
 
     @property
     def coords(self):
-        return [self.frame, self.id, self.cm_discrete, self.cm_sub, self.z_sub, self.x_sub, self.y_sub,
+        return [self.frame, self.id,
+                self.cm_discrete, self.cm_sub,
+                self.z_sub, self.x_sub, self.y_sub,
                 self.z_discrete, self.x_discrete, self.y_discrete]
 
     @property
     def coords_pdf(self):
-        return [self.frame, self.id, self.cm_discrete, self.cm_sub, self.z_sub, self.x_sub, self.y_sub,
+        return [self.frame, self.id,
+                self.cm_discrete, self.cm_sub,
+                self.z_sub, self.x_sub, self.y_sub,
                 self.z_discrete, self.x_discrete, self.y_discrete,
                 self.pdf_A,
                 self.pdf_yc,
@@ -278,7 +290,7 @@ class IdptParticle(object):
     @property
     def location(self):
         """
-        Notes: the location is in index-array coordinates. Meaning, the furthest "left" or "top" value can be 0.
+        Note: the location is in index-array coordinates. Meaning, the furthest "left" or "top" value can be 0.
         """
         return self._location
 

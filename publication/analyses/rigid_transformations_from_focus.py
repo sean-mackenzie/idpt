@@ -40,9 +40,6 @@ size_x_inches, size_y_inches = fig.get_size_inches()
 plt.close(fig)
 
 
-# TODO: call ICP functions directly instead of these ones below? Are they copied exactly or similar?
-
-
 def flatten_list_of_lists(l):
     return [item for sublist in l for item in sublist]
 
@@ -410,7 +407,6 @@ def regularize_coordinates_between_image_sets(df, r0):
     z_zero_from_test_img_center = 68.6  # 68.51
     z_zero_of_calib_id_from_test = 68.1  # the in-focus z-position of calib particle in test images (arb. units)
 
-    # TODO: limit images in dataset to only those within this z-range
     z_range = [-50, 55]
 
     # maintain original names where possible
@@ -438,8 +434,6 @@ def regularize_coordinates_between_image_sets(df, r0):
 
     # make radial coordinate
     df['r'] = np.sqrt((df['x'] - r0[0]) ** 2 + (df['y'] - r0[1]) ** 2)
-
-    a = 1
 
     return df
 

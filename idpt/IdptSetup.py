@@ -9,13 +9,11 @@ class IdptSetup(object):
     def __init__(self, inputs, outputs, processing, z_assessment, optics=None):
         """
 
-        Parameters
-        ----------
-        inputs
-        outputs
-        processing
-        z_assessment
-        optics
+        :param inputs:
+        :param outputs:
+        :param processing:
+        :param z_assessment:
+        :param optics:
         """
         self.inputs = inputs
         self.outputs = outputs
@@ -27,6 +25,18 @@ class IdptSetup(object):
 class inputs(object):
     def __init__(self, dataset, image_collection_type, image_path, image_file_type, image_base_string,
                  calibration_z_step_size, baseline_image, hard_baseline=True, image_subset=None):
+        """
+
+        :param dataset:
+        :param image_collection_type:
+        :param image_path:
+        :param image_file_type:
+        :param image_base_string:
+        :param calibration_z_step_size:
+        :param baseline_image:
+        :param hard_baseline:
+        :param image_subset:
+        """
         # image collection ID and type
         self.dataset = dataset
         self.image_collection_type = image_collection_type
@@ -47,6 +57,12 @@ class inputs(object):
 
 class outputs(object):
     def __init__(self, results_path, save_id_string, save_plots):
+        """
+
+        :param results_path:
+        :param save_id_string:
+        :param save_plots:
+        """
         self.results_path = results_path
         self.save_plots = save_plots
         self.save_id_string = save_id_string
@@ -56,6 +72,19 @@ class processing(object):
     def __init__(self, min_particle_area, max_particle_area, template_padding,
                  same_id_threshold, stacks_use_raw, cropping, background_subtraction,
                  preprocessing, thresholding, xy_displacement=None):
+        """
+
+        :param min_particle_area:
+        :param max_particle_area:
+        :param template_padding:
+        :param same_id_threshold:
+        :param stacks_use_raw:
+        :param cropping:
+        :param background_subtraction:
+        :param preprocessing:
+        :param thresholding:
+        :param xy_displacement:
+        """
 
         self.template_padding = template_padding
         self.min_particle_area = min_particle_area
@@ -74,6 +103,11 @@ class processing(object):
 
 class z_assessment(object):
     def __init__(self, infer_method, use_stack_id=None):
+        """
+
+        :param infer_method:
+        :param use_stack_id:
+        """
         self.infer_method = infer_method
         self.use_stack_id = use_stack_id
 
@@ -86,37 +120,24 @@ class optics(object):
                  gain=None, cyl_focal_length=None, wavelength=None, z_range=None):
         """
 
-        Parameters
-        ----------
-        particle_diameter
-        demag
-        magnification
-        numerical_aperture
-        focal_length
-        ref_index_medium
-        ref_index_lens
-        pixel_size
-        pixel_dim_x
-        pixel_dim_y
-        bkg_mean
-        bkg_noise
-        points_per_pixel
-        n_rays
-        gain
-        cyl_focal_length
-        wavelength
-
-        Notes:
-            20X - LCPlanFL N 20X LCD        [LCPLFLN20xLCD]
-                magnification:              20
-                numerical_aperture:         0.45
-                field_number:               26.5
-                working distance:           7.4 - 8.3 mm
-                transmittance:              90% @ 425 - 670 nm
-                correction collar:          0 - 1.2 mm
-                objective lens diameter:    15 mm
-
-                microns per pixel:          1.55 (careful with using this value)
+        :param particle_diameter:
+        :param demag:
+        :param magnification:
+        :param numerical_aperture:
+        :param focal_length:
+        :param ref_index_medium:
+        :param ref_index_lens:
+        :param pixel_size:
+        :param pixel_dim_x:
+        :param pixel_dim_y:
+        :param bkg_mean:
+        :param bkg_noise:
+        :param points_per_pixel:
+        :param n_rays:
+        :param gain:
+        :param cyl_focal_length:
+        :param wavelength:
+        :param z_range:
         """
         self.particle_diameter = particle_diameter
         self.demag = demag
@@ -150,20 +171,9 @@ class optics(object):
         self.microns_per_pixel = pixel_size / self.effective_magnification
 
         # Rayleigh Criterion (maximum lateral resolution)
-        """
-        The Rayleigh Criterion is the maximum lateral resolution (distance) that two point sources can be discerned. 
-        It's defined as the distance between the distance where the principal diffraction maximum (central spot of the 
-        Airy disk) from one point source overlaps with the first minimum (dark region surrounding the central spot) from 
-        the Airy disk of the other point source.
-        """
         self.Rayleigh_criterion = 0.61 * wavelength / numerical_aperture
 
         # depth of field
-        """
-        The depth of field is made up of two terms:
-            1. at higher numerical apertures, the wave optics dominates the depth of field (left term)
-            2. at lower numerical apertures, the circle of confusion dominates; which is dependent on the CCD pixel size
-        """
         self.depth_of_field = ref_index_medium * wavelength / numerical_aperture ** 2 + ref_index_medium * pixel_size / \
                               (self.effective_magnification * numerical_aperture)
 
@@ -183,10 +193,10 @@ class optics(object):
 
     def stigmatic_diameter_z(self, z_space, z_zero):
         """
-        particle diameter with distance from the focal plane (stigmatic system)
 
-        z_space:
-        z_zero:
+        :param z_space:
+        :param z_zero:
+        :return:
         """
         # if units of z are not in microns, adjust prior to calculating the intensity profile
         mod = False

@@ -21,6 +21,7 @@ mpl.use('PDF')
 
 import matplotlib.pyplot as plt
 
+
 import scienceplots
 
 # A note on SciencePlots colors
@@ -67,6 +68,14 @@ def make_dir(path):
 
 
 def scatter_and_kde_y(y, binwidth_y, kde, bandwidth_y):
+    """
+
+    :param y:
+    :param binwidth_y:
+    :param kde:
+    :param bandwidth_y:
+    :return:
+    """
     fig, ax = plt.subplots(figsize=(size_x_inches / 1.5, size_y_inches / 1.5))
     ylim_low = (int(np.min(y) / binwidth_y) - 1) * binwidth_y  # + binwidth_y
     ylim_high = (int(np.max(y) / binwidth_y) + 1) * binwidth_y - binwidth_y
@@ -96,6 +105,12 @@ def scatter_and_kde_y(y, binwidth_y, kde, bandwidth_y):
 
 
 def read_coords(path_coords, padding):
+    """
+
+    :param path_coords:
+    :param padding:
+    :return:
+    """
     df = pd.read_excel(path_coords)
     # adjust for padding (which is pre-configured for 5-pixel padding)
     relative_padding = padding - 5
@@ -105,6 +120,13 @@ def read_coords(path_coords, padding):
 
 
 def read_coords_idpt(path_coords, num_pixels, padding):
+    """
+
+    :param path_coords:
+    :param num_pixels:
+    :param padding:
+    :return:
+    """
     # read test coords
     df = pd.read_excel(path_coords)
     # rename columns
@@ -115,7 +137,15 @@ def read_coords_idpt(path_coords, num_pixels, padding):
     return df
 
 
-def read_coords_gdpt(path_coords, measurement_depth, padding):
+def read_coords_gdptlab(path_coords, measurement_depth, padding):
+    """
+    Data obtained using DefocusTracker (GDPTlab)
+
+    :param path_coords:
+    :param measurement_depth:
+    :param padding:
+    :return:
+    """
     # read test coords
     df = pd.read_excel(path_coords)
     # rename columns
@@ -133,8 +163,17 @@ def read_coords_gdpt(path_coords, measurement_depth, padding):
 
 
 def regularize_coordinates_between_image_sets(df, r0, z_range, zf_calibration, zf_test):
+    """
+
+    :param df:
+    :param r0:
+    :param z_range:
+    :param zf_calibration:
+    :param zf_test:
+    :return:
+    """
     # maintain original names where possible
-    df['z_true'] = df['frame']
+    df['z_true'] = df['frame'] + 9
 
     # 3.1: resolve z-position as a function of 'frame' discrepancy
     df['z_true_corr'] = (df['z_true'] - df['z_true'] % 3) / 3 * 5 + 5
@@ -163,10 +202,19 @@ def regularize_coordinates_between_image_sets(df, r0, z_range, zf_calibration, z
 
 
 def align_datasets(dict_data, dict_inputs, dict_paths, dict_plots, make_xy_units):
+    """
+
+    :param dict_data:
+    :param dict_inputs:
+    :param dict_paths:
+    :param dict_plots:
+    :param make_xy_units:
+    :return:
+    """
     path_results = dict_paths['results']
     path_idpt_coords = dict_paths['idpt']
-    path_spct_coords = dict_paths['spct']
-    path_gdpt_coords = dict_paths['gdpt']
+    path_spct_coords = dict_paths['gdpt']
+    path_gdpt_coords = dict_paths['gdptlab']
     path_true_coords = dict_paths['true']
 
     num_pixels = dict_inputs['num_pixels']
@@ -186,11 +234,11 @@ def align_datasets(dict_data, dict_inputs, dict_paths, dict_plots, make_xy_units
     # 1a. read idpt
     dfi = read_coords_idpt(path_idpt_coords, num_pixels=num_pixels, padding=padding)
 
-    # 1b. read spct
+    # 1b. read gdpt
     df_spct = read_coords(path_spct_coords, padding=padding)
 
-    # 1c. read gdpt
-    df_gdpt = read_coords_gdpt(path_gdpt_coords, measurement_depth=measurement_depth, padding=padding)
+    # 1c. read gdptlab
+    df_gdpt = read_coords_gdptlab(path_gdpt_coords, measurement_depth=measurement_depth, padding=padding)
 
     # 2. regularize coords
     dfi = regularize_coordinates_between_image_sets(dfi, r0, z_range, zf_calibration, zf_test)
@@ -217,7 +265,7 @@ def align_datasets(dict_data, dict_inputs, dict_paths, dict_plots, make_xy_units
             df_true[pix2microns] = df_true[pix2microns] * microns_per_pixel
 
     # output
-    dict_coords = dict({'aligned': {'IDPT': dfi, 'SPCT': df_spct, 'GDPT': df_gdpt, 'TRUE': df_true}})
+    dict_coords = dict({'aligned': {'IDPT': dfi, 'GDPT': df_spct, 'GDPTLAB': df_gdpt, 'TRUE': df_true}})
     dict_data.update(dict_coords)
 
     # - EVALUATION
@@ -229,7 +277,7 @@ def align_datasets(dict_data, dict_inputs, dict_paths, dict_plots, make_xy_units
 
         # setup
         dfs = [df_true, dfi, df_spct, df_gdpt]
-        lbls = ['FIJI', 'IDPT', 'SPCT', 'GDPT']
+        lbls = ['FIJI', 'IDPT', 'GDPT', 'GDPTlab']
         sizes = [12, 4, 2, 1]
         markers = ['o', 'D', 's', '*']
         clrs = ['k', sciblue, scigreen, sciorange]
@@ -265,6 +313,12 @@ def align_datasets(dict_data, dict_inputs, dict_paths, dict_plots, make_xy_units
 
 
 def correct_z_by_plane(df, dict_plane):
+    """
+
+    :param df:
+    :param dict_plane:
+    :return:
+    """
     # correct coordinates using fitted plane
     df['z_plane'] = fit.calculate_z_of_3d_plane(df.x, df.y, popt=dict_plane['popt_pixels'])
     df['z_plane'] = df['z_plane'] - dict_plane['z_f_fit_plane_image_center']
@@ -289,6 +343,15 @@ def correct_z_by_plane(df, dict_plane):
 
 
 def package_plane_corrected_dataframe(method, list_of_dataframes, out_of_plane_threshold, path_results, path_invalid):
+    """
+
+    :param method:
+    :param list_of_dataframes:
+    :param out_of_plane_threshold:
+    :param path_results:
+    :param path_invalid:
+    :return:
+    """
     df_all = pd.concat(list_of_dataframes)
 
     # export: (1) all measurements (valid & invalid), (2) invalid only, (3) valid only
@@ -310,6 +373,17 @@ def package_plane_corrected_dataframe(method, list_of_dataframes, out_of_plane_t
 
 
 def bin_by_z_fp(df, z_bins, true_num_particles_per_z, true_total_num, path_results, method, return_global):
+    """
+
+    :param df:
+    :param z_bins:
+    :param true_num_particles_per_z:
+    :param true_total_num:
+    :param path_results:
+    :param method:
+    :param return_global:
+    :return:
+    """
     column_to_bin = 'z_nominal'
     column_to_count = 'id'
     bins = z_bins
@@ -366,6 +440,14 @@ def bin_by_z_fp(df, z_bins, true_num_particles_per_z, true_total_num, path_resul
 
 
 def bin_by_r_fp(df, r_bins, path_results, method):
+    """
+
+    :param df:
+    :param r_bins:
+    :param path_results:
+    :param method:
+    :return:
+    """
     column_to_bin = 'r_microns'
     column_to_count = 'id'
     bins = r_bins
@@ -396,6 +478,16 @@ def bin_by_r_fp(df, r_bins, path_results, method):
 
 
 def bin_by_rz_fp(df, r_bins, z_bins, min_counts_bin_rz, path_results, method):
+    """
+
+    :param df:
+    :param r_bins:
+    :param z_bins:
+    :param min_counts_bin_rz:
+    :param path_results:
+    :param method:
+    :return:
+    """
     columns_to_bin = ['r_microns', 'z_nominal']
     column_to_count = 'id'
     bins = [r_bins, z_bins]
@@ -434,6 +526,14 @@ def bin_by_rz_fp(df, r_bins, z_bins, min_counts_bin_rz, path_results, method):
 
 
 def filter_cm(dfs, labels, cmin, path_results):
+    """
+
+    :param dfs:
+    :param labels:
+    :param cmin:
+    :param path_results:
+    :return:
+    """
     dfs_valid = []
     for df, lbl in zip(dfs, labels):
         # export invalid
@@ -446,6 +546,16 @@ def filter_cm(dfs, labels, cmin, path_results):
 
 
 def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
+    """
+
+    :param dict_data:
+    :param dict_inputs:
+    :param dict_filters:
+    :param dict_paths:
+    :param dict_plots:
+    :param xy_units:
+    :return:
+    """
     if xy_units == 'microns':
         microns_per_pixel = 1
     elif xy_units == 'pixels':
@@ -468,18 +578,18 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
     # get data
     if dict_data['dataset_fit_plane'] == 'aligned':
         dfi = dict_data['aligned']['IDPT']
-        dfs = dict_data['aligned']['SPCT']
-        dfg = dict_data['aligned']['GDPT']
+        dfs = dict_data['aligned']['GDPT']
+        dfg = dict_data['aligned']['GDPTLAB']
         # filter cm
         min_cm = dict_filters['min_cm']
         dfi, dfs, dfg = filter_cm(dfs=[dfi, dfs, dfg],
-                                  labels=['idpt', 'spct', 'gdpt'],
+                                  labels=['idpt', 'gdpt', 'gdptlab'],
                                   cmin=min_cm,
                                   path_results=path_outliers)
     elif dict_data['dataset_fit_plane'].startswith('rigid_transformations'):
         dfi = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_idpt.xlsx'))
-        dfs = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_spct.xlsx'))
-        dfg = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdpt.xlsx'))
+        dfs = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdpt.xlsx'))
+        dfg = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdptlab.xlsx'))
     else:
         raise ValueError("Dataset not understood. Options are: ['aligned', 'corrected', 'corrected_all']")
 
@@ -531,7 +641,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
         dfsz = correct_z_by_plane(df=dfsz, dict_plane=dict_fit_plane)
         dfss.append(dfsz)
 
-        # 2c. GDPT
+        # 2c. GDPTlab
         dfgz = correct_z_by_plane(df=dfgz, dict_plane=dict_fit_plane)
         dfgs.append(dfgz)
 
@@ -540,15 +650,15 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
                                                        out_of_plane_threshold=out_of_plane_threshold,
                                                        path_results=path_results, path_invalid=path_outliers)
 
-    dfss, dfss_all = package_plane_corrected_dataframe(method='spct', list_of_dataframes=dfss,
+    dfss, dfss_all = package_plane_corrected_dataframe(method='gdpt', list_of_dataframes=dfss,
                                                        out_of_plane_threshold=out_of_plane_threshold,
                                                        path_results=path_results, path_invalid=path_outliers)
-    dfgs, dfgs_all = package_plane_corrected_dataframe(method='gdpt', list_of_dataframes=dfgs,
+    dfgs, dfgs_all = package_plane_corrected_dataframe(method='gdptlab', list_of_dataframes=dfgs,
                                                        out_of_plane_threshold=out_of_plane_threshold,
                                                        path_results=path_results, path_invalid=path_outliers)
 
-    dict_corr = dict({'corrected': {'IDPT': dfis, 'SPCT': dfss, 'GDPT': dfgs},
-                      'corrected_all': {'IDPT': dfis_all, 'SPCT': dfss_all, 'GDPT': dfgs_all},
+    dict_corr = dict({'corrected': {'IDPT': dfis, 'GDPT': dfss, 'GDPTLAB': dfgs},
+                      'corrected_all': {'IDPT': dfis_all, 'GDPT': dfss_all, 'GDPTLAB': dfgs_all},
                       })
     dict_data.update(dict_corr)
 
@@ -577,7 +687,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
             ax2.axhline(dict_fit_plane['assert_z_f_fit_plane_image_center'],
                         linestyle='--', linewidth=0.75, color='k', label='Est. True')
 
-            for df, lbl, clr in zip([dfiz, dfsz, dfgz], ['IDPT', 'SPCT', 'GDPT'],
+            for df, lbl, clr in zip([dfiz, dfsz, dfgz], ['IDPT', 'GDPT', 'GDPTlab'],
                                     [sciblue, scigreen, sciorange]):
                 # plot positions corrected by fitted plane
                 ax1.scatter(df['x'], df['z'], s=1, color=clr, alpha=1, label=lbl)
@@ -634,7 +744,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
             ax2.plot(plot_plane_along_yiy, plot_plane_along_yiz, color=plane_clr, alpha=0.5, label='Fit Plane')
             ax2.plot(plot_plane_along_yfy, plot_plane_along_yfz, color=plane_clr, alpha=0.5)
 
-            for df, lbl, clr in zip([dfiz, dfsz, dfgz], ['IDPT', 'SPCT', 'GDPT'],
+            for df, lbl, clr in zip([dfiz, dfsz, dfgz], ['IDPT', 'GDPT', 'GDPTlab'],
                                     [sciblue, scigreen, sciorange]):
                 # plot positions corrected by fitted plane
                 ax1.scatter(df['x'], df['z_no_corr'], s=1, color=clr, alpha=1, label=lbl)
@@ -654,7 +764,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
             plt.close()
 
             fig, axes = plt.subplots(nrows=3, sharex=True)
-            for ax, df, lbl, clr in zip(axes, [dfiz, dfsz, dfgz], ['IDPT', 'SPCT', 'GDPT'],
+            for ax, df, lbl, clr in zip(axes, [dfiz, dfsz, dfgz], ['IDPT', 'GDPT', 'GDPTlab'],
                                         [sciblue, scigreen, sciorange]):
                 # plot fitted plane viewed along x-axis
                 plane_x = dict_fit_plane['px']
@@ -712,7 +822,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
             ax2.plot(plot_plane_along_yiy, plot_plane_along_yiz, color=plane_clr, alpha=0.5, label='Fit Plane')
             ax2.plot(plot_plane_along_yfy, plot_plane_along_yfz, color=plane_clr, alpha=0.5)
 
-            for df, lbl, clr in zip([dfiz, dfsz, dfgz], ['IDPT', 'SPCT', 'GDPT'],
+            for df, lbl, clr in zip([dfiz, dfsz, dfgz], ['IDPT', 'GDPT', 'GDPTlab'],
                                     [sciblue, scigreen, sciorange]):
                 ax1.scatter(df['x'], df['z_no_corr'], s=1, color=clr, alpha=1, label=lbl)
                 ax2.scatter(df['y'], df['z_no_corr'], s=1, color=clr, alpha=1, label=lbl)
@@ -727,7 +837,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
             plt.close()
 
             fig, axes = plt.subplots(nrows=3, sharex=True)
-            for ax, df, lbl, clr in zip(axes, [dfiz, dfsz, dfgz], ['IDPT', 'SPCT', 'GDPT'],
+            for ax, df, lbl, clr in zip(axes, [dfiz, dfsz, dfgz], ['IDPT', 'GDPT', 'GDPTlab'],
                                         [sciblue, scigreen, sciorange]):
                 ax.scatter(df['x'], df['z_no_corr'], s=1, color=clr, alpha=1, label=lbl)
                 ax.set_ylabel(r'$z \: (\mu m)$')
@@ -789,7 +899,7 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
         dfgsc = dfgs.copy()
 
         fig, axes = plt.subplots(nrows=3, sharex=True, figsize=(size_x_inches * 1.2, size_y_inches))
-        for ax, df, lbl, clr in zip(axes, [dfisc, dfssc, dfgsc], ['IDPT', 'SPCT', 'GDPT'],
+        for ax, df, lbl, clr in zip(axes, [dfisc, dfssc, dfgsc], ['IDPT', 'GDPT', 'GDPTlab'],
                                     [sciblue, scigreen, sciorange]):
             ax.scatter(df['r'], df['error_rel_plane'], s=1, color=clr, alpha=0.3, label=lbl)
             ax.set_ylabel(r'$\epsilon_{z} \: (\mu m)$')
@@ -858,6 +968,17 @@ def fit_plane_analysis(dict_data, dict_inputs, dict_filters, dict_paths, dict_pl
 
 
 def fit_rigid_transformations(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
+    """
+
+    :param method:
+    :param dict_data:
+    :param dict_inputs:
+    :param dict_filters:
+    :param dict_paths:
+    :param dict_plots:
+    :param xy_units:
+    :return:
+    """
     if xy_units == 'microns':
         microns_per_pixel = 1
     elif xy_units == 'pixels':
@@ -942,6 +1063,16 @@ def fit_rigid_transformations(method, dict_data, dict_inputs, dict_filters, dict
 
 
 def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
+    """
+
+    :param dict_data:
+    :param dict_inputs:
+    :param dict_filters:
+    :param dict_paths:
+    :param dict_plots:
+    :param xy_units:
+    :return:
+    """
     if xy_units == 'microns':
         microns_per_pixel = 1
     elif xy_units == 'pixels':
@@ -953,17 +1084,17 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
     if dict_data['dataset_rmse'].startswith('corrected'):
         if 'IDPT' in dict_data[dict_data['dataset_rmse']].keys():
             dfi = dict_data[dict_data['dataset_rmse']]['IDPT']
-            dfs = dict_data[dict_data['dataset_rmse']]['SPCT']
-            dfg = dict_data[dict_data['dataset_rmse']]['GDPT']
+            dfs = dict_data[dict_data['dataset_rmse']]['GDPT']
+            dfg = dict_data[dict_data['dataset_rmse']]['GDPTLAB']
         else:
             if dict_data['dataset_rmse'] == 'corrected':
                 path_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane.xlsx')
-                path_spct = join(dict_paths['fit_plane'], 'spct_error_relative_plane.xlsx')
-                path_gdpt = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane.xlsx')
+                path_spct = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane.xlsx')
+                path_gdpt = join(dict_paths['fit_plane'], 'gdptlab_error_relative_plane.xlsx')
             elif dict_data['dataset_rmse'] == 'corrected_all':
                 path_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane_all.xlsx')
-                path_spct = join(dict_paths['fit_plane'], 'spct_error_relative_plane_all.xlsx')
-                path_gdpt = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane_all.xlsx')
+                path_spct = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane_all.xlsx')
+                path_gdpt = join(dict_paths['fit_plane'], 'gdptlab_error_relative_plane_all.xlsx')
             else:
                 raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
             dfi = pd.read_excel(path_idpt)
@@ -971,10 +1102,11 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
             dfg = pd.read_excel(path_gdpt)
     elif dict_data['dataset_rmse'] == 'rigid_transformations':
         dfi = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_idpt.xlsx'))
-        dfs = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_spct.xlsx'))
-        dfg = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdpt.xlsx'))
+        dfs = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdpt.xlsx'))
+        dfg = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdptlab.xlsx'))
     else:
-        raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all', 'rigid_transformations']")
+        raise ValueError("Dataset not understood. Options are: "
+                         "['corrected', 'corrected_all', 'rigid_transformations']")
 
     # read inputs
     col_error_z = dict_data['use_columns']['rmse_error_z']
@@ -1018,18 +1150,17 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
                                     true_num_particles_per_z=true_num_particles_per_z,
                                     true_total_num=true_total_num,
                                     path_results=path_results,
-                                    method='spct',
+                                    method='gdpt',
                                     return_global=True)
     dfgm, dfgm_global = bin_by_z_fp(df=dfg,
                                     z_bins=z_trues,
                                     true_num_particles_per_z=true_num_particles_per_z,
                                     true_total_num=true_total_num,
                                     path_results=path_results,
-                                    method='gdpt',
+                                    method='gdptlab',
                                     return_global=True)
 
-    # TODO:  I should add empty dictionaries to dict_data so I know what data does get put in there.
-    dict_rmse_z = dict({'rmse_z': {'IDPT': dfim, 'SPCT': dfsm, 'GDPT': dfgm}})
+    dict_rmse_z = dict({'rmse_z': {'IDPT': dfim, 'GDPT': dfsm, 'GDPTLAB': dfgm}})
     dict_data.update(dict_rmse_z)
 
     # ---
@@ -1045,7 +1176,7 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
     global_averaged_fps = []
     dfzs = [dfim, dfsm, dfgm]
     dfms = [dfim_global, dfsm_global, dfgm_global]
-    mtds = ['idpt', 'spct', 'gdpt']
+    mtds = ['idpt', 'gdpt', 'gdptlab']
     for dfz, dfm, mtd in zip(dfzs, dfms, mtds):
         # depth-averaged
         depth_averaged_fp = dfz[['cm', 'rmse_z', 'count_id', 'true_num_per_z', 'percent_meas']]
@@ -1071,7 +1202,7 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
     if dict_data['dataset_rmse'] == 'rigid_transformations':
         depth_averaged_icps = []
         global_averaged_icps = []
-        mtds = ['idpt', 'spct', 'gdpt']
+        mtds = ['idpt', 'gdpt', 'gdptlab']
         for mtd in mtds:
             # depth-averaged r.m.s. error
             depth_averaged_icp = pd.read_excel(
@@ -1114,12 +1245,12 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
         depth_averaged_fps = depth_averaged_fps.merge(depth_averaged_icps, how='inner', on='method')
         global_averaged_fps = global_averaged_fps.merge(global_averaged_icps, how='inner', on='method')
 
-    depth_averaged_fps.to_excel(join(path_supfigs, 'depth-averaged_performance_w_GDPT.xlsx'), index=False)
-    global_averaged_fps.to_excel(join(path_supfigs, 'global-averaged_performance_w_GDPT.xlsx'), index=False)
+    depth_averaged_fps.to_excel(join(path_supfigs, 'depth-averaged_performance_w_GDPTlab.xlsx'), index=False)
+    global_averaged_fps.to_excel(join(path_supfigs, 'global-averaged_performance_w_GDPTlab.xlsx'), index=False)
 
-    depth_averaged_fps = depth_averaged_fps[depth_averaged_fps['method'].isin(['IDPT', 'SPCT'])]
+    depth_averaged_fps = depth_averaged_fps[depth_averaged_fps['method'].isin(['IDPT', 'GDPT'])]
     depth_averaged_fps.to_excel(join(path_pubfigs, 'depth-averaged_performance.xlsx'), index=False)
-    global_averaged_fps = global_averaged_fps[global_averaged_fps['method'].isin(['IDPT', 'SPCT'])]
+    global_averaged_fps = global_averaged_fps[global_averaged_fps['method'].isin(['IDPT', 'GDPT'])]
     global_averaged_fps.to_excel(join(path_pubfigs, 'global-averaged_performance.xlsx'), index=False)
 
     # ---
@@ -1135,8 +1266,8 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
         fig, ax = plt.subplots(figsize=(size_x_inches * 1., size_y_inches * 1.))
 
         ax.plot(dfim.bin, dfim['rmse_z'], '-o', label='IDPT')
-        ax.plot(dfsm.bin, dfsm['rmse_z'], '-o', label='SPCT')
-        ax.plot(dfgm.bin, dfgm['rmse_z'], '-o', label='GDPT')
+        ax.plot(dfsm.bin, dfsm['rmse_z'], '-o', label='GDPT')
+        ax.plot(dfgm.bin, dfgm['rmse_z'], '-o', label='GDPTlab')
 
         ax.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
         ax.set_xlabel(r'$z \: (\mu m)$')
@@ -1159,7 +1290,7 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
         fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True,
                                             figsize=(size_x_inches * 1.35, size_y_inches * 1.25))
 
-        for df, lbl, clr, zord in zip([dfim, dfsm, dfgm], ['IDPT', 'SPCT', 'GDPT'],
+        for df, lbl, clr, zord in zip([dfim, dfsm, dfgm], ['IDPT', 'GDPT', 'GDPTlab'],
                                       [sciblue, scigreen, sciorange], [zorder_i, zorder_s, zorder_g]):
             ax1.plot(df.bin, df['cm'], '-o', ms=ms, label=lbl, color=clr, zorder=zord)
             ax2.plot(df.bin, df['percent_meas'], '-o', ms=ms, color=clr, zorder=zord)
@@ -1181,8 +1312,8 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
         # setup 2D binning
         r_bins = [100, 225, 350, 475]
         dfim = bin_by_r_fp(dfi, r_bins, path_results, method='idpt')
-        dfsm = bin_by_r_fp(dfs, r_bins, path_results, method='spct')
-        dfgm = bin_by_r_fp(dfg, r_bins, path_results, method='gdpt')
+        dfsm = bin_by_r_fp(dfs, r_bins, path_results, method='gdpt')
+        dfgm = bin_by_r_fp(dfg, r_bins, path_results, method='gdptlab')
         # ---
         # filter before plotting
         dfim = dfim[dfim['count_id'] > min_counts_bin_r]
@@ -1192,8 +1323,8 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
         # plot
         fig, ax = plt.subplots(figsize=(size_x_inches * 1., size_y_inches * 1.))
         ax.plot(dfim.bin, dfim['rmse_z'], '-o', color=sciblue, label='IDPT')
-        ax.plot(dfsm.bin, dfsm['rmse_z'], '-o', color=scigreen, label='SPCT')
-        ax.plot(dfgm.bin, dfgm['rmse_z'], '-o', color=sciorange, label='GDPT')
+        ax.plot(dfsm.bin, dfsm['rmse_z'], '-o', color=scigreen, label='GDPT')
+        ax.plot(dfgm.bin, dfgm['rmse_z'], '-o', color=sciorange, label='GDPTlab')
         ax.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
         ax.set_xticks([100, 200, 300, 400, 500])
         ax.set_xlabel(r'$r \: (\mu m)$')
@@ -1210,8 +1341,8 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
         z_bins = dfi['z_nominal'].unique()
         r_bins = [150, 300, 450]
         dfim = bin_by_rz_fp(dfi, r_bins, z_bins, min_counts_bin_rz, path_results, method='idpt')
-        dfsm = bin_by_rz_fp(dfs, r_bins, z_bins, min_counts_bin_rz, path_results, method='spct')
-        dfgm = bin_by_rz_fp(dfg, r_bins, z_bins, min_counts_bin_rz, path_results, method='gdpt')
+        dfsm = bin_by_rz_fp(dfs, r_bins, z_bins, min_counts_bin_rz, path_results, method='gdpt')
+        dfgm = bin_by_rz_fp(dfg, r_bins, z_bins, min_counts_bin_rz, path_results, method='gdptlab')
         # ---
 
         # plot
@@ -1233,16 +1364,16 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
         ax1.text(0.05, 0.925, 'IDPT', horizontalalignment='left', verticalalignment='top', transform=ax1.transAxes)
 
         ax2.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
-        ax2.text(0.05, 0.925, 'SPCT', horizontalalignment='left', verticalalignment='top', transform=ax2.transAxes)
+        ax2.text(0.05, 0.925, 'GDPT', horizontalalignment='left', verticalalignment='top', transform=ax2.transAxes)
 
         ax3.set_ylabel(r'$\sigma_{z}^{\delta} \: (\mu m)$')
         ax3.set_xlabel(r'$z \: (\mu m)$')
         ax3.set_xticks([-50, -25, 0, 25, 50])
-        ax3.text(0.05, 0.925, 'GDPT', horizontalalignment='left', verticalalignment='top', transform=ax3.transAxes)
+        ax3.text(0.05, 0.925, 'GDPTlab', horizontalalignment='left', verticalalignment='top', transform=ax3.transAxes)
 
         plt.tight_layout()
         plt.savefig(join(path_results, 'bin_r-z_rmse-z_by_r-z' + '.png'))
-        plt.savefig(join(path_supfigs, 'Figure 4a-b - Compare with GDPT.png'),
+        plt.savefig(join(path_supfigs, 'Figure 4a-b - Compare with GDPTlab.png'),
                     dpi=300)
         plt.close()
 
@@ -1250,6 +1381,15 @@ def evaluate_root_mean_square_error(dict_data, dict_inputs, dict_filters, dict_p
 
 
 def evaluate_field_dependent_effects(method, dict_data, dict_inputs, dict_paths, dict_plots):
+    """
+
+    :param method:
+    :param dict_data:
+    :param dict_inputs:
+    :param dict_paths:
+    :param dict_plots:
+    :return:
+    """
     path_results = dict_paths['field_dependent_effects']
     make_dir(path=path_results)
 
@@ -1287,9 +1427,9 @@ def evaluate_field_dependent_effects(method, dict_data, dict_inputs, dict_paths,
     norm = mpl.colors.Normalize(vmin=np.min(zts), vmax=np.max(zts))
     cmap = 'Spectral_r'
 
-    if method == 'spct':
+    if method == 'gdpt':
         mclr = scigreen
-    elif method == 'gdpt':
+    elif method == 'gdptlab':
         mclr = sciorange
     else:
         raise ValueError("Method not understood")
@@ -1367,8 +1507,10 @@ def evaluate_field_dependent_effects(method, dict_data, dict_inputs, dict_paths,
             ax.set_ylabel(r'$z \: (\mu m)$')
             ax.legend(loc='lower left', bbox_to_anchor=(0, 1.0), ncol=3)
             plt.tight_layout()
-            plt.savefig(join(path_results_p_by_z,
-                             'fit_parabola_z-nominal={}_rmse={}.png'.format(np.round(zt, 1), np.round(rmse, 2))))
+            plt.savefig(
+                join(path_results_p_by_z,
+                     'fit_parabola_z-nominal={}_rmse={}.png'.format(np.round(zt, 1),
+                                                                    np.round(rmse, 2))))
             plt.close()
 
         # plot z by r
@@ -1408,6 +1550,14 @@ def evaluate_field_dependent_effects(method, dict_data, dict_inputs, dict_paths,
 
 
 def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
+    """
+
+    :param dict_data:
+    :param dict_inputs:
+    :param dict_paths:
+    :param dict_plots:
+    :return:
+    """
     path_results = dict_paths['pubfigs']
     make_dir(path=path_results)
 
@@ -1425,11 +1575,11 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
     if plot_figure_3:
         # read: rmse_z
         dfim = pd.read_excel(dict_paths['read_rmse_z']['IDPT'])
-        dfsm = pd.read_excel(dict_paths['read_rmse_z']['SPCT'])
+        dfsm = pd.read_excel(dict_paths['read_rmse_z']['GDPT'])
 
         # read: rmse_xy
         dfirt = pd.read_excel(dict_paths['read_rmse_xy']['IDPT'])
-        dfsrt = pd.read_excel(dict_paths['read_rmse_xy']['SPCT'])
+        dfsrt = pd.read_excel(dict_paths['read_rmse_xy']['GDPT'])
 
         # ---
 
@@ -1526,22 +1676,22 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
         # load coords
         if dict_data['dataset_field_dependent_effects'] == 'corrected':
             path_read_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane.xlsx')
-            path_read_spct = join(dict_paths['field_dependent_effects'], 'spct_error_relative_plane_with_parabola.xlsx')
+            path_read_spct = join(dict_paths['field_dependent_effects'], 'gdpt_error_relative_plane_with_parabola.xlsx')
         elif dict_data['dataset_field_dependent_effects'] == 'corrected_all':
             path_read_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane_all.xlsx')
             path_read_spct = join(dict_paths['field_dependent_effects'],
-                                  'spct_error_relative_plane_all_with_parabola.xlsx')
+                                  'gdpt_error_relative_plane_all_with_parabola.xlsx')
         elif dict_data['dataset_field_dependent_effects'] == 'rigid_transformations':
             path_read_idpt = join(dict_paths['rigid_transformations'], 'dfBB_icp_idpt.xlsx')
             path_read_spct = join(dict_paths['field_dependent_effects'],
-                                  'spct_dfBB_icp_error_relative_plane_with_parabola.xlsx')
+                                  'gdpt_dfBB_icp_error_relative_plane_with_parabola.xlsx')
         else:
             raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
         dfi = pd.read_excel(path_read_idpt)
         dfs = pd.read_excel(path_read_spct)
 
         # load fit parabolas
-        df_res_fit = pd.read_excel(join(dict_paths['field_dependent_effects'], 'spct_fit_results.xlsx'))
+        df_res_fit = pd.read_excel(join(dict_paths['field_dependent_effects'], 'gdpt_fit_results.xlsx'))
 
         # ---
 
@@ -1572,10 +1722,6 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             quad_hspace = quad_hspace2
             quad_wspace = quad_wspace2
 
-            """fig, axs = plt.subplots(2, 2,
-                                    figsize=(size_x_inches * 2.175, size_y_inches * 1.25),
-                                    sharex=False, layout='constrained',
-                                    gridspec_kw={'wspace': 0.15, 'hspace': 0.125})"""
             fig, axs = plt.subplots(2, 2,
                                     figsize=quad_figsize,
                                     sharex=False, layout='constrained',
@@ -1636,7 +1782,7 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
             ax_z_ylim = ax_z.get_ylim()
 
             # legend: z-coordinates
-            """z_legend = ax_z.legend(handles=[p_idpt, p_spct, p_sub],
+            """z_legend = ax_z.legend(handles=[p_idpt, p_gdpt, p_sub],
                                    ncol=3, loc='lower left', bbox_to_anchor=(0.0, 1.0), borderpad=0.05,
                                    handlelength=1.2, handletextpad=0.3, labelspacing=0.3, columnspacing=1)"""
             z_legend = ax_z.legend(handles=[p_idpt, p_spct], loc='lower left',
@@ -1670,7 +1816,7 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
 
             # read
             dfim = pd.read_excel(join(dict_paths['rmse_z'], 'idpt_bin_r-z_rmse-z.xlsx'))
-            dfsm = pd.read_excel(join(dict_paths['rmse_z'], 'spct_bin_r-z_rmse-z.xlsx'))
+            dfsm = pd.read_excel(join(dict_paths['rmse_z'], 'gdpt_bin_r-z_rmse-z.xlsx'))
 
             # plot
             clrs = ['black', 'blue', 'red']
@@ -1701,9 +1847,6 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
 
             ax_idpt.legend(loc='lower left', bbox_to_anchor=(0.01, 1.0), ncol=3, columnspacing=1.25,
                            title=r'$r^{\delta} \: \mathrm{(\mu m)}$')
-            """ax_idpt.legend(loc='upper right', title=r'$r^{\delta} \: (\mu m)$', # ncol=3,
-                           markerscale=0.8, borderpad=0.3, handlelength=1.2, handletextpad=0.6,
-                           labelspacing=0.25, columnspacing=1.5)"""
             ax_idpt.text(0.05, 0.89, 'IDPT',
                          horizontalalignment='left', verticalalignment='top', transform=ax_idpt.transAxes)
 
@@ -1724,6 +1867,17 @@ def plot_pubfigs(dict_data, dict_inputs, dict_paths, dict_plots):
 
 
 def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_plots, xy_units):
+    """
+
+    :param method:
+    :param dict_data:
+    :param dict_inputs:
+    :param dict_filters:
+    :param dict_paths:
+    :param dict_plots:
+    :param xy_units:
+    :return:
+    """
     if xy_units == 'microns':
         microns_per_pixel = 1
     elif xy_units == 'pixels':
@@ -1736,16 +1890,16 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
     lim_errxy = dict_filters['in_plane_threshold']
     lim_errz = dict_filters['out_of_plane_threshold']
 
-    if dict_plots['supfigs']['Figure3_GDPT']:
+    if dict_plots['supfigs']['Figure3_GDPTlab']:
         # read: rmse_z
         dfim = pd.read_excel(dict_paths['read_rmse_z']['IDPT'])
-        dfsm = pd.read_excel(dict_paths['read_rmse_z']['SPCT'])
-        dfgm = pd.read_excel(dict_paths['read_rmse_z']['GDPT'])
+        dfsm = pd.read_excel(dict_paths['read_rmse_z']['GDPT'])
+        dfgm = pd.read_excel(dict_paths['read_rmse_z']['GDPTLAB'])
 
         # read: rmse_xy
         dfirt = pd.read_excel(dict_paths['read_rmse_xy']['IDPT'])
-        dfsrt = pd.read_excel(dict_paths['read_rmse_xy']['SPCT'])
-        dfgrt = pd.read_excel(dict_paths['read_rmse_xy']['GDPT'])
+        dfsrt = pd.read_excel(dict_paths['read_rmse_xy']['GDPT'])
+        dfgrt = pd.read_excel(dict_paths['read_rmse_xy']['GDPTLAB'])
 
         # ---
 
@@ -1756,8 +1910,8 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
         clr_s = scigreen
         clr_g = sciorange
         lgnd_i = 'IDPT'
-        lgnd_s = 'SPCT'
-        lgnd_g = 'GDPT'
+        lgnd_s = 'GDPT'
+        lgnd_g = 'GDPTlab'
         zorder_i, zorder_s, zorder_g = 3.5, 3.3, 3.4
 
         ms = 4
@@ -1829,7 +1983,7 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
         plt.tight_layout()
         plt.subplots_adjust(hspace=0.3, wspace=0.3)  # hspace=0.175, wspace=0.25
 
-        plt.savefig(join(path_results, 'Figure 3 - Compare with GDPT.png'), dpi=300)
+        plt.savefig(join(path_results, 'Figure 3 - Compare with GDPTlab.png'), dpi=300)
         plt.close()
 
     # ---
@@ -2014,12 +2168,12 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
         # 1. read test coords
         if method == 'idpt':
             df = pd.read_excel(dict_paths['read_errors_xy']['IDPT'])
-        elif method == 'spct':
-            df = pd.read_excel(dict_paths['read_errors_xy']['SPCT'])
         elif method == 'gdpt':
             df = pd.read_excel(dict_paths['read_errors_xy']['GDPT'])
+        elif method == 'gdptlab':
+            df = pd.read_excel(dict_paths['read_errors_xy']['GDPTLAB'])
         else:
-            raise ValueError("method not understood. Options are: ['idpt', 'spct', 'gdpt']")
+            raise ValueError("method not understood. Options are: ['idpt', 'gdpt', 'gdptlab']")
 
         # plot histogram
         err_cols = ['errx', 'erry', 'errz']
@@ -2123,21 +2277,21 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
         # ---
 
         # plot methods on same figure
-        if os.path.exists(join(path_results, 'idpt_rmse-z_by_c-min.xlsx')) and os.path.exists(join(path_results, 'spct_rmse-z_by_c-min.xlsx')):
+        if os.path.exists(join(path_results, 'idpt_rmse-z_by_c-min.xlsx')) and os.path.exists(join(path_results, 'gdpt_rmse-z_by_c-min.xlsx')):
             dfi = pd.read_excel(join(path_results, 'idpt_rmse-z_by_c-min.xlsx'))
-            dfs = pd.read_excel(join(path_results, 'spct_rmse-z_by_c-min.xlsx'))
+            dfs = pd.read_excel(join(path_results, 'gdpt_rmse-z_by_c-min.xlsx'))
 
             results = [dfi, dfs]
             clrs = [sciblue, scigreen]
-            lbls = ['IDPT', 'SPCT']
+            lbls = ['IDPT', 'GDPT']
             save_id = 'compare_rmse-z_by_c-min'
 
-            if os.path.exists(join(path_results, 'gdpt_rmse-z_by_c-min.xlsx')):
-                dfg = pd.read_excel(join(path_results, 'gdpt_rmse-z_by_c-min.xlsx'))
+            if os.path.exists(join(path_results, 'gdptlab_rmse-z_by_c-min.xlsx')):
+                dfg = pd.read_excel(join(path_results, 'gdptlab_rmse-z_by_c-min.xlsx'))
                 results.extend([dfg])
                 clrs.extend([sciorange])
-                lbls.extend(['GDPT'])
-                save_id = save_id + '_w_GDPT'
+                lbls.extend(['GDPTlab'])
+                save_id = save_id + '_w_GDPTlab'
 
             fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, figsize=(size_x_inches, size_y_inches))
             for res, clr, lbl in zip(results, clrs, lbls):
@@ -2161,12 +2315,12 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
         if dict_data['dataset_rmse'].startswith('corrected'):
             if dict_data['dataset_rmse'] == 'corrected':
                 path_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane.xlsx')
-                path_spct = join(dict_paths['fit_plane'], 'spct_error_relative_plane.xlsx')
-                path_gdpt = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane.xlsx')
+                path_spct = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane.xlsx')
+                path_gdpt = join(dict_paths['fit_plane'], 'gdptlab_error_relative_plane.xlsx')
             elif dict_data['dataset_rmse'] == 'corrected_all':
                 path_idpt = join(dict_paths['fit_plane'], 'idpt_error_relative_plane_all.xlsx')
-                path_spct = join(dict_paths['fit_plane'], 'spct_error_relative_plane_all.xlsx')
-                path_gdpt = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane_all.xlsx')
+                path_spct = join(dict_paths['fit_plane'], 'gdpt_error_relative_plane_all.xlsx')
+                path_gdpt = join(dict_paths['fit_plane'], 'gdptlab_error_relative_plane_all.xlsx')
             else:
                 raise ValueError("Dataset not understood. Options are: ['corrected', 'corrected_all']")
             dfi = pd.read_excel(path_idpt)
@@ -2174,8 +2328,8 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
             dfg = pd.read_excel(path_gdpt)
         elif dict_data['dataset_rmse'] == 'rigid_transformations':
             dfi = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_idpt.xlsx'))
-            dfs = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_spct.xlsx'))
-            dfg = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdpt.xlsx'))
+            dfs = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdpt.xlsx'))
+            dfg = pd.read_excel(join(dict_paths['rigid_transformations'], 'dfBB_icp_gdptlab.xlsx'))
         else:
             raise ValueError(
                 "Dataset not understood. Options are: ['corrected', 'corrected_all', 'rigid_transformations']")
@@ -2200,8 +2354,8 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
         fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, figsize=(size_x_inches * 1.2, size_y_inches * 1.1))
 
         ax1.plot(dfi['z_nominal'], dfi['cm'], '-o', ms=ms, color=sciblue, label='IDPT')
-        ax1.plot(dfs['z_nominal'], dfs['cm'], '-o', ms=ms, color=scigreen, label='SPCT')
-        # ax1.plot(dfg['z_nominal'], dfg['cm'], '-o', ms=ms, color=sciorange, label='GDPT')
+        ax1.plot(dfs['z_nominal'], dfs['cm'], '-o', ms=ms, color=scigreen, label='GDPT')
+        # ax1.plot(dfg['z_nominal'], dfg['cm'], '-o', ms=ms, color=sciorange, label='GDPTlab')
 
         ax2.plot(dfi['z_nominal'], dfi['z'] - dfi['z_calib'], '-o', ms=ms, color=sciblue, label='{}'.format(np.round(rmsez_ga_i, 2)))
         ax2.plot(dfs['z_nominal'], dfs['z'] - dfs['z_calib'], '-o', ms=ms, color=scigreen, label='{}'.format(np.round(rmsez_ga_s, 2)))
@@ -2223,7 +2377,6 @@ def plot_supfigs(method, dict_data, dict_inputs, dict_filters, dict_paths, dict_
         pass
 
 if __name__ == '__main__':
-    # TODO: limit images in dataset (that's on Github) to only those within this z-range
 
     # A. experimental details
     MAG_EFF = 10.01  # effective magnification (experimentally measured)
@@ -2265,8 +2418,8 @@ if __name__ == '__main__':
 
     PATH_CWD = os.getcwd()
     PATH_IDPT_COORDS = join(PATH_CWD, 'results', 'test', 'test_test-coords.xlsx')
-    PATH_SPCT_COORDS = join(PATH_CWD, 'analyses', 'ref', 'spct_test-coords.xlsx')
-    PATH_GDPT_COORDS = join(PATH_CWD, 'analyses', 'ref', 'gdpt_test-coords.xlsx')
+    PATH_SPCT_COORDS = join(PATH_CWD, 'analyses', 'ref', 'gdpt_test-coords.xlsx')
+    PATH_GDPT_COORDS = join(PATH_CWD, 'analyses', 'ref', 'gdptlab_test-coords.xlsx')
     PATH_TRUE_COORDS = join(PATH_CWD, 'analyses', 'ref', 'fiji_true-coords.xlsx')
 
     PATH_RESULTS = join(PATH_CWD, 'analyses', 'outputs')
@@ -2276,19 +2429,19 @@ if __name__ == '__main__':
     PATH_RMSE_Z = join(PATH_RESULTS, 'rmse_z')
     PATH_READ_RMSE_Z = dict({
         'IDPT': join(PATH_RMSE_Z, 'idpt_bin-z_rmse-z.xlsx'),
-        'SPCT': join(PATH_RMSE_Z, 'spct_bin-z_rmse-z.xlsx'),
         'GDPT': join(PATH_RMSE_Z, 'gdpt_bin-z_rmse-z.xlsx'),
+        'GDPTLAB': join(PATH_RMSE_Z, 'gdptlab_bin-z_rmse-z.xlsx'),
     })
     PATH_RIGID_TRANSFORMATIONS = join(PATH_RESULTS, 'rigid_transformations')
     PATH_READ_RMSE_XY = dict({
         'IDPT': join(PATH_RIGID_TRANSFORMATIONS, 'dfdz_icp_idpt.xlsx'),
-        'SPCT': join(PATH_RIGID_TRANSFORMATIONS, 'dfdz_icp_spct.xlsx'),
         'GDPT': join(PATH_RIGID_TRANSFORMATIONS, 'dfdz_icp_gdpt.xlsx'),
+        'GDPTLAB': join(PATH_RIGID_TRANSFORMATIONS, 'dfdz_icp_gdptlab.xlsx'),
     })
     PATH_READ_ERRORS_XY = dict({
         'IDPT': join(PATH_RIGID_TRANSFORMATIONS, 'dfBB_icp_idpt.xlsx'),
-        'SPCT': join(PATH_RIGID_TRANSFORMATIONS, 'dfBB_icp_spct.xlsx'),
         'GDPT': join(PATH_RIGID_TRANSFORMATIONS, 'dfBB_icp_gdpt.xlsx'),
+        'GDPTLAB': join(PATH_RIGID_TRANSFORMATIONS, 'dfBB_icp_gdptlab.xlsx'),
     })
     PATH_FIELD_DEP_EFFECTS = join(PATH_RESULTS, 'field_dependent_effects')
     PATH_PUBFIGS = join(PATH_RESULTS, 'pubfigs')
@@ -2297,8 +2450,8 @@ if __name__ == '__main__':
     DICT_PATHS = {
         'results': PATH_RESULTS,
         'idpt': PATH_IDPT_COORDS,
-        'spct': PATH_SPCT_COORDS,
-        'gdpt': PATH_GDPT_COORDS,
+        'gdpt': PATH_SPCT_COORDS,
+        'gdptlab': PATH_GDPT_COORDS,
         'true': PATH_TRUE_COORDS,
         'fit_plane': PATH_FIT_PLANE,
         'outliers': PATH_OUTLIERS,
@@ -2361,19 +2514,19 @@ if __name__ == '__main__':
             {'plot_each_z': True,
              'plot_overlay': True,
              'plot_shape_change': True,
-             'plot_mean_z_per_pid': False,
+             'plot_mean_z_per_pid': True,
              },
         'pubfigs': {'Figure3': True,
                     'Figure4': True,
                     },
         'supfigs':
-            {'Figure3_GDPT': False,
-             'outliers': False,
-             'hist_z': False,
-             'hist_xy': False,
+            {'Figure3_GDPTlab': True,
+             'outliers': True,
+             'hist_z': True,
+             'hist_xy': True,
              'rmse_z_by_cmin': True,
-             'compare_calibration_particle': False,
-             'asymmetric_similarity': False,
+             'compare_calibration_particle': True,
+             'asymmetric_similarity': True,
              }
     }
 
@@ -2398,7 +2551,7 @@ if __name__ == '__main__':
                                dict_plots=DICT_PLOTS,
                                make_xy_units=USE_XY_UNITS,
                                )
-    """
+
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # FIT 3D PLANE TO CORRECT FOR STAGE TILT + VARIATIONS IN MICROMETER DISPLACEMENT
@@ -2413,7 +2566,7 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # FIT RIGID TRANSFORMATIONS FROM FOCUS
-    for mtd in ['idpt', 'spct', 'gdpt']:
+    for mtd in ['idpt', 'gdpt', 'gdptlab']:
         fit_rigid_transformations(method=mtd,
                                   dict_data=DICT_DATA,
                                   dict_inputs=DICT_INPUTS,
@@ -2437,14 +2590,14 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # FIT PARABOLAS TO EVALUATE FIELD-DEPENDENT EFFECTS
-    for mtd in ['spct', 'gdpt']:
+    for mtd in ['gdpt', 'gdptlab']:
         evaluate_field_dependent_effects(method=mtd,
                                          dict_data=DICT_DATA,
                                          dict_inputs=DICT_INPUTS,
                                          dict_paths=DICT_PATHS,
                                          dict_plots=DICT_PLOTS,
                                          )
-    """
+
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # PLOT FIGURES RELATED TO PUBLICATION
@@ -2453,11 +2606,11 @@ if __name__ == '__main__':
                  dict_paths=DICT_PATHS,
                  dict_plots=DICT_PLOTS,
                  )
-    raise ValueError()
+
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     # PLOT FIGURES RELATED TO SUPPLEMENTARY INFORMATION
-    for mtd in ['idpt', 'spct', 'gdpt']:
+    for mtd in ['idpt', 'gdpt', 'gdptlab']:
         plot_supfigs(method=mtd,
                      dict_data=DICT_DATA,
                      dict_inputs=DICT_INPUTS,

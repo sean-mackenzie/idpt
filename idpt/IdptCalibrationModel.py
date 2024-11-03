@@ -1,12 +1,8 @@
 # import modules
 from .IdptCalibrationStack import IdptCalibrationStack
-
-
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-import logging
-logger = logging.getLogger(__name__)
 
 
 class IdptCalibrationModel(object):
@@ -18,8 +14,8 @@ class IdptCalibrationModel(object):
 
         if not isinstance(image_to_z, list):
             if not isinstance(image_to_z, dict):
-                raise TypeError("image_to_z must be a dictionary with keys image names and z coordinates "
-                                "as values. Received type {}".format(type(image_to_z)))
+                raise TypeError("image_to_z must be a dictionary with image names as keys"
+                                "and z coordinates as values. Received type {}".format(type(image_to_z)))
             else:
                 image_to_z = [image_to_z]
 
@@ -32,7 +28,8 @@ class IdptCalibrationModel(object):
                 if image.filename not in img_to_z.keys():
                     raise ValueError("No z coordinate specified for image {}")
                 else:
-                    # set both the true_z and z value for each image and particle if the particle z-coord is None.
+                    # set both the true_z and z value for each image
+                    # and particle if the particle z-coord is None.
                     image.set_z(img_to_z[image.filename])
 
         # Create the calibration stacks
@@ -42,7 +39,7 @@ class IdptCalibrationModel(object):
         return len(self.calibration_stacks)
 
     def __repr__(self):
-        class_ = 'GdpytCalibrationSet'
+        class_ = 'IdptCalibrationModel'
         repr_dict = {
             'Calibration stacks for particle IDs': list(self.calibration_stacks.keys())}
         out_str = "{}: \n".format(class_)
@@ -51,30 +48,20 @@ class IdptCalibrationModel(object):
         return out_str
 
     def _create_stacks(self, *collections):
+        """
+
+        :param collections:
+        :return:
+        """
         stacks = {}
         ids_in_collects = []
         for i, collection in enumerate(collections):
-            # create a new collection (i.e. GdpytImageCollection) ID if multiple image collections are passed in.
-            if i != 0:
-                new_id_map = {}
-                new_id = max(ids_in_collects) + 1
-
-            # loop through all particle ID's and create a calibration stack class for each, then build stack layers.
+            # loop through particles and create a calibration
+            # stack class for each, then build stack layers.
             for image in collection.images.values():
                 for particle in image.particles:
-
-                    # if multiple collections, reassign a unique ID to each particle so stacks from different images
-                    # between collections don't get mixed up.
-                    if i != 0:
-                        if particle.id not in new_id_map.keys():
-                            new_id_map.update({particle.id: new_id})
-                            particle.reset_id(new_id)
-                            new_id += 1
-                        else:
-                            particle.reset_id(new_id_map[particle.id])
-
                     if particle.id not in stacks.keys():
-                        # instantiate GdpytCalibrationStack class for each particle ID.
+                        # instantiate IdptCalibrationStack class for each particle ID.
                         new_stack = IdptCalibrationStack(particle.id, particle.location)
                         new_stack.add_particle(particle)
                         stacks.update({particle.id: new_stack})
@@ -83,11 +70,12 @@ class IdptCalibrationModel(object):
 
                     ids_in_collects.append(particle.id)
 
-            # once all the particles ID's have been assigned to a stack, build the calibration stack layers.
+            # once all the particles ID's have been assigned
+            # to a stack, build the calibration stack layers.
             for stack in stacks.values():
                 stack.build_layers()
 
-        # define the GdpytCalibrationSet's stacks.
+        # define IdptCalibrationModel's stacks.
         self._calibration_stacks = stacks
 
     def infer_z(self, infer_collection):
@@ -114,20 +102,30 @@ class IdptImageInference(object):
         self.calib_set = calib_set
 
     def _cross_correlation_inference(self, function, use_stack=None):
+        """
+
+        :param function:
+        :param use_stack:
+        :return:
+        """
 
         if function.lower() not in ['sknccorr']:
             raise ValueError("{} is not implemented or a valid function".format(function))
 
         if use_stack == 'nearest':
+            # link particles at inference-time by their x-y positions
             baseline_locations = []
             for stack in self.calib_set.calibration_stacks.values():
                 baseline_locations.append(pd.DataFrame({'x': stack.location[0], 'y': stack.location[1]},
                                                        index=[stack.id]))
             baseline_locations = pd.concat(baseline_locations).sort_index()
             nneigh = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(baseline_locations.values)
+        else:
+            # rely on earlier linking (assignment of particle ID's) and use stack with corresponding ID
+            pass
 
         for image in self.collection.images.values():
-            logger.info("Inferring image {}".format(image.filename))
+            print("Inferring image {}".format(image.filename))
             for particle in image.particles:
                 if use_stack is not None:
                     if use_stack == 'nearest':
@@ -150,8 +148,13 @@ class IdptImageInference(object):
                 stack.infer_z(particle, function=function)
 
     def sknccorr(self, use_stack=None):
+        """
+
+        :param use_stack:
+        :return:
+        """
         self._cross_correlation_inference('sknccorr', use_stack=use_stack)
 
-    @property
-    def infer_sub_image(self):
-        return self._infer_sub_image
+    #@property
+    #def infer_sub_image(self):
+    #    return self._infer_sub_image

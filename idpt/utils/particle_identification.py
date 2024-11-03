@@ -4,11 +4,19 @@ import numpy as np
 from skimage.measure import label, regionprops, find_contours
 
 import matplotlib
+
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 
 def apply_threshold(img, parameter, show_threshold):
+    """
+
+    :param img:
+    :param parameter:
+    :param show_threshold:
+    :return:
+    """
     method = list(parameter.keys())[0]
 
     if method == 'none':
@@ -57,6 +65,12 @@ def apply_threshold(img, parameter, show_threshold):
 
 
 def identify_contours(particle_mask, intensity_image):
+    """
+
+    :param particle_mask:
+    :param intensity_image:
+    :return:
+    """
 
     # label the particle mask without segmentation
     label_image = label(particle_mask)
@@ -98,6 +112,14 @@ def identify_contours(particle_mask, intensity_image):
 
 
 def pad_and_center_region(cX, cY, bbox, padding):
+    """
+
+    :param cX:
+    :param cY:
+    :param bbox:
+    :param padding:
+    :return:
+    """
     # make the bounding box a square (w = h)
     if bbox[2] > bbox[3]:
         bbox = (bbox[0], bbox[1], bbox[2], bbox[2])

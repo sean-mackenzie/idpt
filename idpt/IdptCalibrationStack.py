@@ -1,16 +1,10 @@
 # IdptCalibrationStack.py
 
 from .IdptParticle import IdptParticle
-from idpt.utils.correlation import get_similarity_function, sk_norm_cross_correlation, correlate_against_stack
-from idpt.utils.correlation import localize_discrete, localize_subresolution, parabolic_interpolation
-from idpt.utils.subresolution import fit_2d_gaussian_on_corr
-
+from idpt.utils.correlation import get_similarity_function, correlate_against_stack
+from idpt.utils.correlation import localize_discrete, localize_subresolution
 from collections import OrderedDict
 import numpy as np
-
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class IdptCalibrationStack(object):
@@ -34,14 +28,14 @@ class IdptCalibrationStack(object):
             return item, self.layers[item]
 
     def __repr__(self):
-        class_ = 'GdpytCalibrationStack'
+        class_ = 'IdptCalibrationStack'
         min_z = min(list(self.layers.keys()))
         max_z = max(list(self.layers.keys()))
-        repr_dict = {'Particle ID': self.id,
-                     'Location (x, y)': self.location,
-                     'Particle bounding box dimensions': self.shape,
-                     'Number of layers': len(self),
-                     'Min. and max. z coordinate': [min_z, max_z]}
+        repr_dict = {'ID': self.id,
+                     'Baseline position': self.location,
+                     'Sub-image size': self.shape,
+                     'Z-depth': len(self),
+                     'Z-bounds': [min_z, max_z]}
         out_str = "{}: \n".format(class_)
         for key, val in repr_dict.items():
             out_str += '{}: {} \n'.format(key, str(val))
@@ -52,10 +46,6 @@ class IdptCalibrationStack(object):
         self._particles.append(particle)
 
     def build_layers(self):
-        # uniformize template size and center
-        print("skipping uniformize and center templates. Need to double-check")
-        # self._uniformize_and_center()
-
         # get list of z-coordinates and template images
         z = []
         templates = []
@@ -63,7 +53,7 @@ class IdptCalibrationStack(object):
             z.append(particle.z)
             templates.append(particle.get_template())
 
-        # create ordered dict and sort by z-coord
+        # create ordered dict and sort by z-coordinate
         layers = OrderedDict()
         for z, template in sorted(zip(z, templates), key=lambda k: k[0]):
             layers.update({z: template})
@@ -71,32 +61,13 @@ class IdptCalibrationStack(object):
         # instantiate layers attribute
         self._layers = layers
 
-    """
-    def _uniformize_and_center(self):
-        # Find biggest bounding box
-        w_max, h_max = (0, 0)
-        for particle in self._particles:
-            w, h = (particle.bbox[2], particle.bbox[3])
-            if w > w_max:
-                w_max = w
-            if h > h_max:
-                h_max = h
-
-        for particle in self._particles:
-            logger.debug('Stack resize bbox: {}'.format((w_max, h_max)))
-            particle.resize_bbox(w_max, h_max)
-
-        self._shape = (w_max, h_max)
-    """
-
-    def get_layers(self, range_z):
-        # if no range is supplied, get all layers
-        if range_z is not None:
-            raise ValueError("Not sure what this is")
-        else:
-            return self._layers
-
     def infer_z(self, particle, function):
+        """
+
+        :param particle:
+        :param function:
+        :return:
+        """
         # stack of z-positions and templates
         z_calib, calib_stack = np.array(list(self.layers.keys())), np.array(list(self.layers.values()))
 
@@ -118,13 +89,6 @@ class IdptCalibrationStack(object):
                                                                 response_stack, z_calib, optim)
         # set particle's sub-resolution position estimation
         particle.set_localized_subresolution_position(sim_sub, dx_sub, dy_sub, z_sub)
-
-    def reset_id(self, new_id):
-        assert isinstance(new_id, int)
-        self._id = new_id
-
-        for particle in self.particles:
-            particle.reset_id(new_id)
 
     @property
     def id(self):

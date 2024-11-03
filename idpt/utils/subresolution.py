@@ -1,7 +1,4 @@
 # utils.subresolution.py
-"""
-A good reference for PSF-based z-determination: https://link.springer.com/content/pdf/10.1007/s00348-014-1809-2.pdf
-"""
 
 # import modules
 import numpy as np
@@ -10,14 +7,43 @@ from scipy.ndimage import rotate
 
 
 def gauss_1d_function(x, a, x0, sigma):
+    """
+
+    :param x:
+    :param a:
+    :param x0:
+    :param sigma:
+    :return:
+    """
     return a * np.exp(-(x - x0) ** 2 / (2 * sigma ** 2))
 
 
 def gauss_2d_function(xy, a, x0, y0, sigmax, sigmay):
+    """
+
+    :param xy:
+    :param a:
+    :param x0:
+    :param y0:
+    :param sigmax:
+    :param sigmay:
+    :return:
+    """
     return a * np.exp(-((xy[:, 0] - x0) ** 2 / (2 * sigmax ** 2) + (xy[:, 1] - y0) ** 2 / (2 * sigmay ** 2)))
 
 
 def bivariate_gaussian_pdf(xy, a, x0, y0, sigmax, sigmay, rho):
+    """
+
+    :param xy:
+    :param a:
+    :param x0:
+    :param y0:
+    :param sigmax:
+    :param sigmay:
+    :param rho:
+    :return:
+    """
     return a * np.exp(
         -((1 / (2 * (1 - rho ** 2))) * ((xy[:, 0] - x0) ** 2 / sigmax ** 2 - 2 * rho * (xy[:, 0] - x0) * (
                     xy[:, 1] - y0) / (sigmax * sigmay) +
@@ -27,6 +53,18 @@ def bivariate_gaussian_pdf(xy, a, x0, y0, sigmax, sigmay, rho):
 
 
 def bivariate_gaussian_pdf_bkg(xy, a, x0, y0, sigmax, sigmay, rho, bkg):
+    """
+
+    :param xy:
+    :param a:
+    :param x0:
+    :param y0:
+    :param sigmax:
+    :param sigmay:
+    :param rho:
+    :param bkg:
+    :return:
+    """
     return a * np.exp(
         -((1 / (2 * (1 - rho ** 2))) * ((xy[:, 0] - x0) ** 2 / sigmax ** 2 - 2 * rho * (xy[:, 0] - x0) * (
                     xy[:, 1] - y0) / (sigmax * sigmay) +
@@ -36,11 +74,14 @@ def bivariate_gaussian_pdf_bkg(xy, a, x0, y0, sigmax, sigmay, rho, bkg):
 
 
 def fit_2d_gaussian_on_corr(res, xc, yc):
-    # xc_original = xc
-    # yc_original = yc
+    """
 
+    :param res:
+    :param xc:
+    :param yc:
+    :return:
+    """
     scaling_factor = 1
-    # res = rescale(res, scaling_factor)
 
     # make grid
     X = np.arange(np.shape(res)[1])
@@ -62,22 +103,6 @@ def fit_2d_gaussian_on_corr(res, xc, yc):
         popt, pcov = curve_fit(gauss_2d_function, XYZ[:, :2], XYZ[:, 2], p0=guess)
         A, xc, yc, sigmax, sigmay = popt
 
-
-        """
-        popt, img_norm = processing.fit_2d_gaussian_on_image(img, normalize=True, bkg_mean=bkg_mean)
-        A, xc, yc, sigmax, sigmay = popt
-
-        # calculate the fit error
-        XYZ, fZ, rmse, r_squared, residuals = processing.evaluate_fit_2d_gaussian_on_image(img_norm, popt)
-        """
-
-        # xc = xc / scaling_factor
-        # yc = yc / scaling_factor
-
-        # 3D plot similarity map and 2D Gaussian fit
-        # evaluate_fit_gaussian_and_plot_3d(res, popt, scaling_factor)
-        # print("Original ({}, {}); Fitted ({}, {})".format(xc_original, yc_original, np.round(xc, 3), np.round(yc, 3)))
-
     except RuntimeError:
         xc, yc = None, None
 
@@ -85,6 +110,15 @@ def fit_2d_gaussian_on_corr(res, xc, yc):
 
 
 def fit_2d_gaussian_on_image(img, normalize=True, guess='sigma_improved', rotate_degrees=0, bivariate_pdf=False):
+    """
+
+    :param img:
+    :param normalize:
+    :param guess:
+    :param rotate_degrees:
+    :param bivariate_pdf:
+    :return:
+    """
     if rotate_degrees != 0:
         img = rotate(img, angle=rotate_degrees, reshape=False, mode='grid-constant', cval=np.percentile(img, 5))
 
@@ -130,11 +164,7 @@ def fit_2d_gaussian_on_image(img, normalize=True, guess='sigma_improved', rotate
                                                [2**16, 512, 512, 100, 100, 0.99, 2**16])
                                        )
             except ValueError:
-                j = 1
-            # NOTE: the below function is used to drop the background intensity 'bkg' from the results
-            # popt = popt[:-1]
-
-            # NOTE: on 11/21/22, I am changing the script to include the 'bkg' in order to calculate the rmse per fit.
+                pass
 
         elif bivariate_pdf:
             guess = [guess_A, xc, yc, guess_sigma, guess_sigma, 0]
@@ -146,42 +176,6 @@ def fit_2d_gaussian_on_image(img, normalize=True, guess='sigma_improved', rotate
     except RuntimeError:
         popt = None
 
-    """
-    if popt is not None:
-        # experimental
-        y_slice = np.unravel_index(np.argmax(img, axis=None), img.shape)[0]
-        y_profile = img[y_slice, :]
-        x_space = np.arange(len(y_profile))
-
-        # Gaussian
-        imgf = gauss_2d_function(XYZ[:, :2], *popt)
-        imf = np.reshape(imgf, img.shape)
-
-        fig, ax = plt.subplots(nrows=2, ncols=2)
-        ax1 = ax[0, 0]
-        ax2 = ax[0, 1]
-        ax3 = ax[1, 0]
-        ax4 = ax[1, 1]
-
-        ax1.imshow(img)
-        ax1.set_title('Normalized (max={})'.format(np.round(np.max(img), 1)))
-
-        ax2.imshow(imf)
-        ax2.set_title('A={}, wx={}, wy={}'.format(np.round(popt[0], 1), np.round(popt[3], 1), np.round(popt[4], 1)))
-
-        ax3.plot(x_space, y_profile)
-        ax3.set_ylabel('Img Intensity')
-
-        x_gauss = np.linspace(-popt[4] * 2, len(y_profile) + popt[4] * 2, 200)
-        y_gauss = gauss_1d_function(x_gauss, popt[0], popt[1], popt[3])
-        ax4.plot(x_gauss, y_gauss)
-        ax4.set_ylabel('1D Gauss')
-
-        plt.tight_layout()
-        plt.show()
-        j = 1
-    """
-
     return popt
 
 
@@ -189,7 +183,13 @@ def fit_2d_gaussian_on_image(img, normalize=True, guess='sigma_improved', rotate
 
 
 def evaluate_fit_2d_gaussian_on_image(img, fit_func, popt):
-    """ XYZ, fZ, rmse, r_squared, residuals = evaluate_fit_2d_gaussian_on_image(img, fit_func, popt) """
+    """
+
+    :param img:
+    :param fit_func:
+    :param popt:
+    :return:
+    """
 
     XYZ = flatten_image(img)
 
@@ -212,8 +212,20 @@ def evaluate_fit_2d_gaussian_on_image(img, fit_func, popt):
 
 
 def fit_gaussian_calc_diameter(img, normalize=True, rotate_degrees=0, bivariate_pdf=False):
-    popt = fit_2d_gaussian_on_image(img, normalize=normalize, guess='sigma_improved',
-                                    rotate_degrees=rotate_degrees, bivariate_pdf=bivariate_pdf)
+    """
+
+    :param img:
+    :param normalize:
+    :param rotate_degrees:
+    :param bivariate_pdf:
+    :return:
+    """
+    popt = fit_2d_gaussian_on_image(img,
+                                    normalize=normalize,
+                                    guess='sigma_improved',
+                                    rotate_degrees=rotate_degrees,
+                                    bivariate_pdf=bivariate_pdf,
+                                    )
 
     if popt is None:
         return None, None, None, None, None, None, None, None, None
@@ -224,12 +236,21 @@ def fit_gaussian_calc_diameter(img, normalize=True, rotate_degrees=0, bivariate_
     A, xc, yc, sigmax, sigmay, rho, bkg = popt
 
     dia_x, dia_y = calc_diameter_from_theory(img, A, xc, yc, sigmax, sigmay)
-    # dia_x, dia_y = calc_diameter_from_pixel_intensities(img, A, xc, yc, sigmax, sigmay)
 
     return dia_x, dia_y, A, yc, xc, sigmay, sigmax, rho, bkg
 
 
 def calc_diameter_from_theory(img, A, xc, yc, sigmax, sigmay):
+    """
+
+    :param img:
+    :param A:
+    :param xc:
+    :param yc:
+    :param sigmax:
+    :param sigmay:
+    :return:
+    """
     beta = np.sqrt(3.67)
 
     # diameter threshold: intensity < np.exp(-3.67 ** 2)
@@ -254,41 +275,20 @@ def calc_diameter_from_theory(img, A, xc, yc, sigmax, sigmay):
     radius_x = x_arr[np.argmin(x_intensity_rel)]
     radius_y = y_arr[np.argmin(y_intensity_rel)]
 
-    """
-    Important Note:
-    You --DO NOT-- multiply the radius by two.
-        > This is because this particular location on a Gaussian distribution corresponds to the location on an 
-        Airy distribution that would be the radius. The location on the Airy distribution would be multiplied by 2
-        because it is the radius. However, for a Gaussian distribution, this point defines the diameter of the Airy disk
-    """
     dia_x = radius_x
     dia_y = radius_y
-
-    # experimental slice
-    """
-    y_slice_exp = np.unravel_index(np.argmax(img, axis=None), img.shape)[0]
-    y_profile_exp = img[y_slice_exp, :]
-    x_space_exp = np.arange(len(y_profile_exp))
-
-    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 6))
-    ax1.plot(x_space_exp, y_profile_exp)
-    ax1.set_xlabel('image pixels')
-    ax1.set_ylabel('image intensity')
-    ax2.plot(x_arr, x_intensity, label='dx={}'.format(np.round(dia_x, 3)))
-    ax2.axhline(diameter_threshold, color='black', label='Threshold={}'.format(np.round(diameter_threshold, 1)))
-    ax2.set_xlabel('resampled pixels')
-    ax2.set_ylabel('Gaussian intensity')
-    ax2.legend()
-    plt.show()
-
-    j = 1
-    """
 
     return dia_x, dia_y
 
 
 def get_amplitude_center_sigma_improved(x_space=None, y_profile=None, img=None):
-    """ raw_amplitude, raw_c, raw_sigma = get_amplitude_center_sigma_improved(x_space=None, y_profile=None, img=None) """
+    """
+
+    :param x_space:
+    :param y_profile:
+    :param img:
+    :return:
+    """
     if y_profile is None:
         y_slice = np.unravel_index(np.argmax(img, axis=None), img.shape)[0]
         y_profile = img[y_slice, :]
@@ -306,8 +306,6 @@ def get_amplitude_center_sigma_improved(x_space=None, y_profile=None, img=None):
     y_pl_zero = len(np.where(y_profile[:np.argmax(y_profile)] - np.mean(y_profile) < 0)[0])
     y_pr_zero = len(np.where(y_profile[np.argmax(y_profile):] - np.mean(y_profile) < 0)[0])
 
-    """y_pl_zero = np.where(y_profile[:np.argmax(y_profile)] - np.mean(y_profile) < 0)[0][0]
-    y_pr_zero = np.where(y_profile[np.argmax(y_profile):] - np.mean(y_profile) < 0)[0][0]"""
     raw_sigma = np.mean([y_pl_zero, y_pr_zero])
 
     return raw_amplitude, raw_c, raw_sigma
@@ -320,7 +318,13 @@ def calculate_residuals(fit_results, data_fit_to):
 
 def calculate_fit_error(fit_results, data_fit_to, fit_func=None, fit_params=None, data_fit_on=None):
     """
-    See 'gdpyt-analysis' for more details.
+
+    :param fit_results:
+    :param data_fit_to:
+    :param fit_func:
+    :param fit_params:
+    :param data_fit_on:
+    :return:
     """
 
     # --- calculate prediction errors

@@ -16,7 +16,6 @@ class datasets(object):
 
     def unpack(self):
         if self.dataset == '11.06.21_z-micrometer-v2':
-            # base_dir = join('idpt', 'publication')
             if self.collection_type == 'calibration':
                 image_path = join('images', 'calibration', '1umSteps')
                 image_file_type = 'tif'

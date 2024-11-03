@@ -1,5 +1,4 @@
 
-import math
 import numpy as np
 from scipy.optimize import curve_fit, minimize
 from scipy.stats import iqr, gaussian_kde
@@ -55,6 +54,11 @@ def kde_scipy(y, y_grid, bandwidth=0.2, **kwargs):
 
 
 def fit_3d_plane(points):
+    """
+
+    :param points:
+    :return:
+    """
     fun = functools.partial(plane_error, points=points)
     params0 = np.array([0, 0, 0])
     res = minimize(fun, params0)
@@ -176,16 +180,11 @@ def cross(a, b):
 
 def calculate_fit_error(fit_results, data_fit_to, fit_func=None, fit_params=None, data_fit_on=None):
     """
-    To run:
-    rmse, r_squared = fit.calculate_fit_error(fit_results, data_fit_to)
+    To run: rmse, r_squared = fit.calculate_fit_error(fit_results, data_fit_to)
 
     Two options for calculating fit error:
         1. fit_func + fit_params: the fit results are calculated.
         2. fit_results: the fit results are known for each data point.
-
-    Old way of doing this (updated 6/11/22):
-    abs_error = fit_results - data_fit_to
-    r_squared = 1.0 - (np.var(abs_error) / np.var(data_fit_to))
 
     :param fit_func: the function used to calculate the fit.
     :param fit_params: generally, popt.
@@ -206,11 +205,6 @@ def calculate_fit_error(fit_results, data_fit_to, fit_func=None, fit_params=None
     mse = np.mean(se)  # mean squared errors
     rmse = np.sqrt(mse)  # Root Mean Squared Error, RMSE
     r_squared = 1.0 - (np.var(np.abs(residuals)) / np.var(data_fit_to))
-
-    #TODO: should investigate this
-    # print("wiki r-squared: {}; old r-squared: {}".format(np.round(r_squared_me, 4), np.round(r_squared, 4)))
-    # I think the "wiki r-squared" is probably the correct one...
-    # 8/23/22 - the wiki is definitely wrong because values range from +1 to -20...
 
     return rmse, r_squared
 

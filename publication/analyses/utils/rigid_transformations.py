@@ -1,5 +1,29 @@
 # publication/analyses/utils/rigid_transformations.py
 
+"""
+Portions of the following code are reproductions of the original codebase:
+https://github.com/ClayFlannigan/icp.
+Copyright 2016 Clay Flannigan
+Licensed under the Apache License, Version 2.0
+
+We acknowledge where significant changes have been made to the original
+code. The original codebase license is copied below:
+
+Copyright 2016 Clay Flannigan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
@@ -17,9 +41,6 @@ def flatten_list_of_lists(l):
 
 def pci_best_fit_transform(A, B):
     '''
-    Reference: 2016 Clay Flannigan
-    https://github.com/ClayFlannigan/icp
-
     Calculates the least-squares best-fit transform that maps corresponding points A to B in m spatial dimensions
     Input:
       A: Nxm numpy array of corresponding points
@@ -64,9 +85,6 @@ def pci_best_fit_transform(A, B):
 
 def pci_nearest_neighbor(src, dst):
     '''
-    Reference: 2016 Clay Flannigan
-    https://github.com/ClayFlannigan/icp
-
     Find the nearest (Euclidean) neighbor in dst for each point in src
     Input:
         src: Nxm array of points
@@ -86,9 +104,6 @@ def pci_nearest_neighbor(src, dst):
 
 def pci_icp(A, B, init_pose=None, max_iterations=20, tolerance=0.001):
     '''
-    Based on reference: 2016 Clay Flannigan
-    https://github.com/ClayFlannigan/icp
-
     The Iterative Closest Point method: finds best-fit transform that maps points A on to points B
     Input:
         A: Nxm numpy array of source mD points
@@ -161,7 +176,14 @@ def nearest_neighbor(src, dst):
 
 
 def distances_xyz(AR, BR, TR):
-    """ xdists, ydists, zdists = distances_xyz(AR=, BR=) """
+    """
+    xdists, ydists, zdists = distances_xyz(AR=, BR=)
+
+    Portions of the following code have been adapted from the original codebase:
+    https://github.com/ClayFlannigan/icp.
+    Copyright 2016 Clay Flannigan
+    Licensed under the Apache License, Version 2.0
+    """
 
     # get number of dimensions
     m = AR.shape[1]
@@ -209,7 +231,7 @@ def rigid_transforms_from_focus(df_test, df_focus, min_num, distance_threshold, 
             dfB = df_test[(df_test['z_nominal'] == zts[ii]) & (df_test['frame'] == fr)].reset_index()
             dfA['z'] = 0
 
-            # resolve GDPT tracking, which can assign the same ID to multiple particles
+            # resolve GDPTlab tracking, which can assign the same ID to multiple particles
             if len(dfB) > len(dfB['id'].unique()):
                 dfB['id'] = np.arange(1000, 1000 + len(dfB))
 

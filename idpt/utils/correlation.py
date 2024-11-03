@@ -1,4 +1,5 @@
 # import modules
+
 from scipy.interpolate import Akima1DInterpolator
 from scipy.optimize import curve_fit
 from skimage.feature import match_template
@@ -12,6 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_similarity_function(function):
+    """
+
+    :param function:
+    :return:
+    """
     if function == 'sknccorr':
         sim_func = sk_norm_cross_correlation
         optim = np.argmax
@@ -21,6 +27,12 @@ def get_similarity_function(function):
 
 
 def sk_norm_cross_correlation(img1, img2):
+    """
+
+    :param img1:
+    :param img2:
+    :return:
+    """
     if img1.size >= img2.size:
         result = match_template(img1, img2)
     else:
@@ -31,6 +43,14 @@ def sk_norm_cross_correlation(img1, img2):
 
 
 def correlate_against_stack(template, stack, sim_func, optim=None):
+    """
+
+    :param template:
+    :param stack:
+    :param sim_func:
+    :param optim:
+    :return:
+    """
     if isinstance(sim_func, str):
         sim_func, optim = get_similarity_function(sim_func)
 
@@ -43,18 +63,18 @@ def correlate_against_stack(template, stack, sim_func, optim=None):
 
     idx_peak_correlation = optim(similarity_stack)
 
-    """import matplotlib.pyplot as plt
-    fig, (ax1, ax2, ax3) = plt.subplots(ncols=3)
-    ax1.imshow(template)
-    ax2.imshow(stack[idx_peak_correlation])
-    ax3.plot(np.arange(len(stack)), similarity_stack)
-    plt.savefig('/Users/mackenzie/PythonProjects/idpt/publication/results/test/max_sim={}.png'.format(similarity_stack[idx_peak_correlation]))
-    j = 1"""
-
     return idx_peak_correlation, similarity_stack, response_stack
 
 
 def localize_discrete(idx_peak_correlation, similarity_stack, response_stack, z_calib):
+    """
+
+    :param idx_peak_correlation:
+    :param similarity_stack:
+    :param response_stack:
+    :param z_calib:
+    :return:
+    """
     correlation_coefficient = similarity_stack[idx_peak_correlation]
     z_discrete = z_calib[idx_peak_correlation]
 
@@ -77,6 +97,15 @@ def localize_discrete(idx_peak_correlation, similarity_stack, response_stack, z_
 
 
 def localize_subresolution(idx_peak_correlation, similarity_stack, response_stack, z_calib, optim):
+    """
+
+    :param idx_peak_correlation:
+    :param similarity_stack:
+    :param response_stack:
+    :param z_calib:
+    :param optim:
+    :return:
+    """
     # sub-resolution z-localization
     z_interp, sim_interp = parabolic_interpolation(z_calib, similarity_stack, idx_peak_correlation)
     z_subresolution = z_interp[optim(sim_interp)]
@@ -110,6 +139,13 @@ def localize_subresolution(idx_peak_correlation, similarity_stack, response_stac
 
 
 def akima_interpolation(z_calib, sim, max_idx):
+    """
+
+    :param z_calib:
+    :param sim:
+    :param max_idx:
+    :return:
+    """
     # find index of maximum image correlation
     x_interp = z_calib
     y_interp = sim
@@ -134,6 +170,13 @@ def akima_interpolation(z_calib, sim, max_idx):
 
 
 def parabolic_interpolation(z_calib, sim, max_idx):
+    """
+
+    :param z_calib:
+    :param sim:
+    :param max_idx:
+    :return:
+    """
     # if there are only two values, we cannot fit a three-point estimator
     if len(z_calib) < 3 or len(sim) < 3:
         return z_calib, sim
