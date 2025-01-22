@@ -5,14 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="393691cb-326b-4c18-b8ab-bd44c63fb764" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/tests/test_import_settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/idpt/IdptImageCollection.py" beforeDir="false" afterPath="$PROJECT_DIR$/idpt/IdptImageCollection.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/idpt/IdptProcess.py" beforeDir="false" afterPath="$PROJECT_DIR$/idpt/IdptProcess.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/idpt/IdptSetup.py" beforeDir="false" afterPath="$PROJECT_DIR$/idpt/IdptSetup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/generate_results.py" beforeDir="false" afterPath="$PROJECT_DIR$/publication/generate_results.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/test/test_test-coords.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/publication/results/test/test_z-trajectories.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/idpt_settings.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/publication/idpt_settings.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/test_copy/test_test-coords.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/publication/results/test_copy/test_z-trajectories.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/publication/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/publication/settings.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -212,6 +208,8 @@
       <workItem from="1733342696309" duration="26000" />
       <workItem from="1733801274450" duration="96000" />
       <workItem from="1737508830351" duration="7100000" />
+      <workItem from="1737518443943" duration="533000" />
+      <workItem from="1737519151549" duration="340000" />
     </task>
     <servers />
   </component>
@@ -247,7 +245,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/idpt$test_import_settings.coverage" NAME="test_import_settings Coverage Results" MODIFIED="1737515355074" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
-    <SUITE FILE_PATH="coverage/idpt$generate_results.coverage" NAME="generate_results Coverage Results" MODIFIED="1737517176009" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
+    <SUITE FILE_PATH="coverage/idpt$generate_results.coverage" NAME="generate_results Coverage Results" MODIFIED="1737519470653" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
     <SUITE FILE_PATH="coverage/idpt$rigid_transformations_from_focus.coverage" NAME="rigid_transformations_from_focus Coverage Results" MODIFIED="1723542299247" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication/analyses" />
     <SUITE FILE_PATH="coverage/idpt$compare_idpt_spct_gdpt.coverage" NAME="compare_idpt_spct_gdpt Coverage Results" MODIFIED="1730614600041" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/publication" />
   </component>

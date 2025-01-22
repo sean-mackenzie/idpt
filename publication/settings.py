@@ -182,24 +182,34 @@ class datasets(object):
 
 def read_settings_to_dict(filepath):
 
+    settings_path = ['calibration_image_path', 'test_image_path', 'share_save_path']
+    settings_str = ['calibration_image_base_string', 'test_image_base_string',
+                    'calibration_baseline_image', 'test_baseline_image',
+                    'share_save_id', 'share_image_file_type']
     settings_int = ['calibration_template_padding', 'test_template_padding',
                     'share_min_particle_area', 'share_max_particle_area']
-    settings_str = ['calibration_image_path', 'test_image_path',
-                    'calibration_image_base_string', 'test_image_base_string',
-                    'calibration_baseline_image', 'test_baseline_image',
-                    'share_save_path', 'share_save_id', 'share_image_file_type']
     settings_float = ['calibration_z_step_size', 'share_same_id_threshold']
     settings_bool = ['share_save_plots']
     settings_eval = ['calibration_image_subset', 'test_image_subset',
                      'test_xy_displacement', 'share_cropping', 'share_thresholding']
-
+    # read settings .xlsx
     df = pd.read_excel(filepath, index_col=0)
+
+    # parse root directory
+    base_dir = df.loc['base_dir', 'v']
+    if base_dir == 'os.getcwd()':
+        base_dir = eval(base_dir)
+
+    # parse settings and data types
     ks = df.index.values.tolist()
     vs = df.v.values.tolist()
-
     dict_settings = {}
     for k, v in zip(ks, vs):
-        if k in settings_int:
+        if k == 'base_dir':
+            pass
+        elif k in settings_path:
+            dict_settings.update({k: join(base_dir, str(v))})
+        elif k in settings_int:
             dict_settings.update({k: int(v)})
         elif k in settings_str:
             dict_settings.update({k: str(v)})
