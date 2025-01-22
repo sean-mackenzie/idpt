@@ -179,9 +179,12 @@ class IdptImageCollection(object):
         :param subset:
         :return:
         """
+        if subset is None:
+            subset = []
+
         files = [f for f in listdir(self.image_path) if f.endswith(self.image_file_type)]
 
-        if subset is not None:
+        if len(subset) > 0:
 
             # if subset is an integer, this indicates
             # the total number of files to include.
@@ -382,7 +385,7 @@ class IdptImageCollection(object):
                     baseline_locations.loc[particle.id, ('x', 'y')] = (particle.location[0], particle.location[1])
 
                 else:
-                    # If the particle is not in the baseline, we may remove it via two methods:
+                    # If the particle is not in the baseline (i.e., too far away), we may remove it via two methods:
                     #   1. if the baseline is a CalibrationModel, as including it will reduce accuracy.
                     #   2. if we designate a "hard baseline" where we don't want to add new particles.
 

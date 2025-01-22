@@ -24,7 +24,7 @@ class IdptSetup(object):
 
 class inputs(object):
     def __init__(self, dataset, image_collection_type, image_path, image_file_type, image_base_string,
-                 calibration_z_step_size, baseline_image, hard_baseline=True, image_subset=None):
+                 baseline_image, calibration_z_step_size=None, hard_baseline=True, image_subset=None):
         """
 
         :param dataset:
@@ -69,9 +69,9 @@ class outputs(object):
 
 
 class processing(object):
-    def __init__(self, min_particle_area, max_particle_area, template_padding,
-                 same_id_threshold, stacks_use_raw, cropping, background_subtraction,
-                 preprocessing, thresholding, xy_displacement=None):
+    def __init__(self, min_particle_area, max_particle_area, same_id_threshold,
+                 template_padding, thresholding, stacks_use_raw=True, cropping=None,
+                 background_subtraction=None, preprocessing=None, xy_displacement=None):
         """
 
         :param min_particle_area:
@@ -102,7 +102,7 @@ class processing(object):
 
 
 class z_assessment(object):
-    def __init__(self, infer_method, use_stack_id=None):
+    def __init__(self, infer_method='sknccorr', use_stack_id=None):
         """
 
         :param infer_method:

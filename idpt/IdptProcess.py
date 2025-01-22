@@ -46,7 +46,7 @@ class IdptProcess(object):
             name_to_z = {}
             for image in self.calib_col.images.values():
                 name_to_z.update({image.filename: float(
-                    image.filename.split(self.calib_settings.inputs.image_base_string)[-1].split('.tif')[0])})
+                    image.filename.split(self.calib_settings.inputs.image_base_string)[-1].split(self.calib_settings.inputs.image_file_type)[0])})
             self.name_to_z = name_to_z
 
         # calibration model
