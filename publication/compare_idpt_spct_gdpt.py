@@ -2417,7 +2417,7 @@ if __name__ == '__main__':
     # SETUP
 
     PATH_CWD = os.getcwd()
-    PATH_IDPT_COORDS = join(PATH_CWD, 'results', 'test', 'test_test-coords.xlsx')
+    PATH_IDPT_COORDS = join(PATH_CWD, 'results', 'test_test-coords.xlsx')
     PATH_SPCT_COORDS = join(PATH_CWD, 'analyses', 'ref', 'gdpt_test-coords.xlsx')
     PATH_GDPT_COORDS = join(PATH_CWD, 'analyses', 'ref', 'gdptlab_test-coords.xlsx')
     PATH_TRUE_COORDS = join(PATH_CWD, 'analyses', 'ref', 'fiji_true-coords.xlsx')

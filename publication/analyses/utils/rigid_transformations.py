@@ -29,11 +29,8 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
 import matplotlib as mpl
-
 mpl.use('TkAgg')
 import matplotlib.pyplot as plt
-
-# TODO: call ICP functions directly instead of these ones below? Are they copied exactly or similar?
 
 def flatten_list_of_lists(l):
     return [item for sublist in l for item in sublist]
@@ -298,12 +295,15 @@ def rigid_transforms_from_focus(df_test, df_focus, min_num, distance_threshold, 
             sorted_fit_uniq_pids = np.array(sorted_fit_uniq_pids)
 
             sorted_uniq_pids = sorted_uniq_pids[~np.isnan(sorted_uniq_pids)]
-            sorted_fit_uniq_pids = sorted_fit_uniq_pids[~np.isnan(sorted_fit_uniq_pids)]
+            sorted_fit_uniq_pids = sorted_fit_uniq_pids[~np.isnan(sorted_fit_uniq_pids)].astype(int)
 
             if len(A) > len(B):  # meaning: A is "ground truth"
                 dfAA = dfA.iloc[sorted_uniq_pids]
                 dfBB = dfB.iloc[sorted_fit_uniq_pids]
             else:  # meaning: B is "ground truth"
+                #for sfqp in sorted_fit_uniq_pids:
+                #    dfAA__ = dfA.iloc[int(sfqp)]
+                #    dfAA_ = dfA.iloc[sfqp]
                 dfAA = dfA.iloc[sorted_fit_uniq_pids]
                 dfBB = dfB.iloc[sorted_uniq_pids]
 
