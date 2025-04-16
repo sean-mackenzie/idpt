@@ -11,39 +11,16 @@ from publication.analyses.utils.rigid_transformations import rigid_transforms_fr
     depth_averaged_rmse_rigid_transforms_from_focus
 import matplotlib as mpl
 from matplotlib.pyplot import cm
-
-""" NOTE: is the below backend causing .svg to render incorrectly? """
-# mpl.use('TkAgg')
-""" I needed to include it in order to plot figures to PyCharg GUI. """
-
-""" NOTE below: using 'SVG' fails to output a vector graphics file. Only PDF seems to work"""
 mpl.use('PDF')
-
 import matplotlib.pyplot as plt
 
-
-import scienceplots
-
-# A note on SciencePlots colors
-"""
-Blue: #0C5DA5
-Green: #00B945
-Red: #FF9500
-Orange: #FF2C00
-
-Other Colors:
-Light Blue: #7BC8F6
-Paler Blue: #0343DF
-Azure: #069AF3
-Dark Green: #054907
-"""
-
+# import scienceplots
+# plt.style.use(['science', 'ieee'])  # 'ieee', 'std-colors'
 sciblue = '#0C5DA5'
 scigreen = '#00B945'
 scired = '#FF2C00'
 sciorange = '#FF9500'
 
-plt.style.use(['science', 'ieee'])  # 'ieee', 'std-colors'
 plt.rcParams.update({
     "font.family": "serif",   # specify font family here
     "font.serif": ["Times"],  # specify font here
@@ -2417,7 +2394,7 @@ if __name__ == '__main__':
     # SETUP
 
     PATH_CWD = os.getcwd()
-    PATH_IDPT_COORDS = join(PATH_CWD, 'results', 'test_test-coords.xlsx')
+    PATH_IDPT_COORDS = join(PATH_CWD, 'results', 'idpt_example_test-coords.xlsx')
     PATH_SPCT_COORDS = join(PATH_CWD, 'analyses', 'ref', 'gdpt_test-coords.xlsx')
     PATH_GDPT_COORDS = join(PATH_CWD, 'analyses', 'ref', 'gdptlab_test-coords.xlsx')
     PATH_TRUE_COORDS = join(PATH_CWD, 'analyses', 'ref', 'fiji_true-coords.xlsx')
