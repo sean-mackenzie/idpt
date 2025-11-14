@@ -3,6 +3,7 @@
 import os
 from os.path import join
 import pandas as pd
+pd.options.mode.chained_assignment = None  # Suppresses SettingWithCopy warning
 import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.neighbors import KernelDensity
@@ -10,9 +11,12 @@ from publication.analyses.utils import fit, bin
 from publication.analyses.utils.rigid_transformations import rigid_transforms_from_focus, \
     depth_averaged_rmse_rigid_transforms_from_focus
 import matplotlib as mpl
+
 from matplotlib.pyplot import cm
 mpl.use('PDF')
 import matplotlib.pyplot as plt
+from publication.utils.style import use_style
+use_style('sm')
 
 # import scienceplots
 # plt.style.use(['science', 'ieee'])  # 'ieee', 'std-colors'
@@ -21,13 +25,13 @@ scigreen = '#00B945'
 scired = '#FF2C00'
 sciorange = '#FF9500'
 
-plt.rcParams.update({
+"""plt.rcParams.update({
     "font.family": "serif",   # specify font family here
     "font.serif": ["Times"],  # specify font here
     "mathtext.fontset" : "stix",  # SciencePlots default: "dejavuserif"; Other: "stix"
     "font.size": 8,
     "figure.dpi": "600",
-})
+})"""
 # "text.latex.preamble" : r"\usepackage{upgreek} \usepackage{txfonts}"
 ##                          \upmu (non-italic mu)   \muup (non-italic mu)   (two different versions)
 fig, ax = plt.subplots()
