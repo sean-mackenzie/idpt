@@ -30,8 +30,8 @@ python publication/compare_idpt_gdpt.py
 ## Analyze your own images
 
 To use this software package to analyze your own images, there are really only two things you need to do:
-1. Create a settings file to instruct IDPT how to perform the analysis: I recommend duplicating, renaming, and editing the idpt_settings.xlsx file.
-2. Run IDPT using the settings file as instructions: I recommend editing the script tests/test_external.py. Just replace the  FILEPATH variable with the name and/or path of your new settings file and run the script. That's it. 
+1. Create a settings file to instruct IDPT how to perform the analysis: I recommend duplicating, renaming, and editing the idpt_settings.xlsx file included in this repository. 
+2. Run IDPT using the settings file as instructions: I recommend editing the script tests/test_external.py that is included with this repository. Just replace the  FILEPATH variable with the name and/or path of your new settings file and run the script. That's it. 
 
 ## Contributing
 
