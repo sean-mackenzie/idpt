@@ -1,0 +1,16 @@
+# Render Blueprint - Deploy with one click
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: idpt-web
+    runtime: docker
+    plan: starter  # $7/month, or use 'free' for testing
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: IDPT_WEB_STORAGE_DIR
+        value: /app/storage
+    disk:
+      name: idpt-storage
+      mountPath: /app/storage
+      sizeGB: 10  # Adjust based on expected usage

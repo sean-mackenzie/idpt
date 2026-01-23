@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDPT Web Interface</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>IDPT 3D Particle Tracking</h1>
+        <p class="subtitle">Web Interface for Image-based Defocused Particle Tracking</p>
+    </header>
+
+    <main>
+        <!-- Tab Navigation -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="create">Create Job</button>
+            <button class="tab-btn" data-tab="jobs">Job History</button>
+        </nav>
+
+        <!-- Create Job Tab -->
+        <section id="create-tab" class="tab-content active">
+            <form id="job-form">
+                <h2>Job Settings</h2>
+
+                <!-- Job Name -->
+                <div class="form-group">
+                    <label for="job-name">Job Name</label>
+                    <input type="text" id="job-name" name="name" value="IDPT Job" required>
+                </div>
+
+                <!-- Calibration Settings -->
+                <fieldset>
+                    <legend>Calibration Input</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="calib-base-string">Image Base String</label>
+                            <input type="text" id="calib-base-string" name="calibration_input.image_base_string" value="calib_">
+                        </div>
+                        <div class="form-group">
+                            <label for="calib-file-type">File Type</label>
+                            <input type="text" id="calib-file-type" name="calibration_input.image_file_type" value="tif">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="calib-z-step">Z Step Size (um)</label>
+                            <input type="number" id="calib-z-step" name="calibration_input.z_step_size" value="1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="calib-baseline">Baseline Image</label>
+                            <input type="text" id="calib-baseline" name="calibration_input.baseline_image" value="calib_50.tif">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Test Settings -->
+                <fieldset>
+                    <legend>Test Input</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="test-base-string">Image Base String</label>
+                            <input type="text" id="test-base-string" name="test_input.image_base_string" value="test_">
+                        </div>
+                        <div class="form-group">
+                            <label for="test-file-type">File Type</label>
+                            <input type="text" id="test-file-type" name="test_input.image_file_type" value="tif">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="test-baseline">Baseline Image</label>
+                        <input type="text" id="test-baseline" name="test_input.baseline_image" value="test_39.tif">
+                    </div>
+                </fieldset>
+
+                <!-- Processing Settings -->
+                <fieldset>
+                    <legend>Processing Settings</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="min-area">Min Particle Area (px)</label>
+                            <input type="number" id="min-area" name="calibration_processing.min_particle_area" value="2" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="max-area">Max Particle Area (px)</label>
+                            <input type="number" id="max-area" name="calibration_processing.max_particle_area" value="1000" min="1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="calib-padding">Calibration Template Padding</label>
+                            <input type="number" id="calib-padding" name="calibration_processing.template_padding" value="17" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="test-padding">Test Template Padding</label>
+                            <input type="number" id="test-padding" name="test_processing.template_padding" value="14" min="1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="threshold-method">Threshold Method</label>
+                            <select id="threshold-method" name="calibration_processing.threshold_method">
+                                <option value="manual" selected>Manual</option>
+                                <option value="otsu">Otsu</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="threshold-value">Threshold Value</label>
+                            <input type="number" id="threshold-value" name="calibration_processing.threshold_value" value="1200">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="same-id">Same ID Threshold</label>
+                            <input type="number" id="same-id" name="calibration_processing.same_id_threshold" value="3" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="xy-displacement">XY Displacement (test)</label>
+                            <input type="text" id="xy-displacement" name="test_processing.xy_displacement" value="-2,-6" placeholder="-2,-6">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Output Settings -->
+                <fieldset>
+                    <legend>Output Settings</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="save-id">Save ID String</label>
+                            <input type="text" id="save-id" name="output.save_id_string" value="idpt">
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" id="save-plots" name="output.save_plots" checked>
+                                Save Plots
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <button type="submit" class="btn btn-primary">Create Job</button>
+            </form>
+        </section>
+
+        <!-- Jobs Tab -->
+        <section id="jobs-tab" class="tab-content">
+            <div class="jobs-header">
+                <h2>Job History</h2>
+                <button class="btn btn-secondary" id="refresh-jobs">Refresh</button>
+            </div>
+            <div id="jobs-list" class="jobs-list">
+                <!-- Jobs will be populated here -->
+            </div>
+        </section>
+
+        <!-- Job Detail Modal -->
+        <div id="job-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modal-job-name">Job Details</h2>
+                <div id="modal-job-status" class="job-status"></div>
+
+                <!-- File Upload Section -->
+                <div id="upload-section">
+                    <h3>Upload Images</h3>
+                    <div class="upload-areas">
+                        <div class="upload-area" id="calib-upload">
+                            <h4>Calibration Images</h4>
+                            <div class="drop-zone" data-type="calibration">
+                                <p>Drop calibration images here or click to select</p>
+                                <input type="file" multiple accept=".tif,.tiff,.png,.jpg,.jpeg" hidden>
+                            </div>
+                            <div class="upload-status" id="calib-status"></div>
+                        </div>
+                        <div class="upload-area" id="test-upload">
+                            <h4>Test Images</h4>
+                            <div class="drop-zone" data-type="test">
+                                <p>Drop test images here or click to select</p>
+                                <input type="file" multiple accept=".tif,.tiff,.png,.jpg,.jpeg" hidden>
+                            </div>
+                            <div class="upload-status" id="test-status"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="start-processing" disabled>Start Processing</button>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progress-section" class="hidden">
+                    <h3>Processing</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <p id="progress-text">0%</p>
+                </div>
+
+                <!-- Results Section -->
+                <div id="results-section" class="hidden">
+                    <h3>Results</h3>
+                    <div id="results-list"></div>
+                    <button class="btn btn-primary" id="download-results">Download Results</button>
+                </div>
+
+                <!-- Error Section -->
+                <div id="error-section" class="hidden">
+                    <h3>Error</h3>
+                    <p id="error-message" class="error-text"></p>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-danger" id="delete-job">Delete Job</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 IDPT - Image-based Defocused Particle Tracking</p>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
