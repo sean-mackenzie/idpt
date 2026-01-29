@@ -5,28 +5,21 @@
 
 IDPT (Individualized Defocusing Particle Tracking) is a 3D particle tracking software package for dynamic surface profilometry and strain field measurements.
 
-**Try it now:** [https://idpt-web.fly.dev](https://idpt-web.fly.dev)
-
 For a complete description of the software and its applications, see the journal publication: [Measurement Science and Technology](https://iopscience.iop.org/article/10.1088/1361-6501/adcceb)
 
 ## Features
 
 - 3D particle localization using defocused imaging
 - Calibration-based depth estimation
-- Web interface for easy analysis without coding
+- Web interface for easy analysis without coding (under development)
 - Python API for custom workflows
 - Excel-based settings for batch processing
 
 ## Quick Start
 
-### Option 1: Web Interface (No Installation Required)
+### Option 1: Web Interface (Under Development)
 
-Visit [https://idpt-web.fly.dev](https://idpt-web.fly.dev) to use IDPT directly in your browser:
-
-1. Create a new job with your processing settings
-2. Upload calibration images (z-stack with known positions)
-3. Upload test images to analyze
-4. Start processing and download results
+A web interface for running IDPT directly in your browser is currently under development and not yet available for use.
 
 ### Option 2: Python Package
 
@@ -74,49 +67,9 @@ idpt/
 └── tests/                   # Test suite
 ```
 
-## Web Interface
+## Web Interface (Under Development)
 
-The web interface provides a user-friendly way to run IDPT analysis:
-
-### Running Locally
-
-```bash
-# Install web dependencies
-pip install -r requirements-web.txt
-
-# Start the server
-uvicorn idpt_web.main:app --reload
-
-# Open http://localhost:8000
-```
-
-### API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/jobs` | Create job with settings |
-| GET | `/api/v1/jobs/{id}` | Get job status |
-| POST | `/api/v1/jobs/{id}/upload/calibration` | Upload calibration images |
-| POST | `/api/v1/jobs/{id}/upload/test` | Upload test images |
-| POST | `/api/v1/jobs/{id}/start` | Start processing |
-| GET | `/api/v1/jobs/{id}/results/download` | Download results |
-
-Full API documentation available at `/docs` when running the server.
-
-### Self-Hosting
-
-Deploy your own instance using Docker:
-
-```bash
-# Build and run with Docker
-docker build -t idpt-web .
-docker run -p 8000:8000 idpt-web
-```
-
-Or deploy to cloud platforms using the included configuration files:
-- `fly.toml` - Fly.io
-- `render.yaml` - Render
-- `Dockerfile` - Any container platform
+A web interface for running IDPT analysis is currently under development and not yet available for use.
 
 ## Configuration
 
